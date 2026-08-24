@@ -842,7 +842,7 @@ button {
 
 /* ================= MAPA DE MÚSCULOS ====================== */
 .mapa-wrap { display:flex; gap:.9rem; align-items:flex-start; }
-.mapa-silhueta { width: 92px; flex-shrink:0; }
+.mapa-silhueta { width: 104px; flex-shrink:0; }
 .mapa-bars { flex:1; min-width:0; display:flex; flex-direction:column; gap:.32rem; }
 .mapa-legenda {
   font-family: var(--font-title);

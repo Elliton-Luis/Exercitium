@@ -446,19 +446,44 @@ const Warrior = (() => {
     };
 
     const silhueta = `
-      <svg class="mapa-silhueta" viewBox="0 0 90 150" aria-hidden="true">
-        <g stroke="#7a5c2e" stroke-width="1.5">
-          <circle cx="45" cy="16" r="9"/>
-          <rect x="39" y="26" width="12" height="5"/>
-          <rect x="24" y="31" width="42" height="10" rx="3" fill="${heat("Ombros")}"/>
-          <rect x="29" y="42" width="32" height="18" rx="3" fill="${heat("Peito", "Costas")}"/>
-          <rect x="12" y="32" width="10" height="34" rx="5" fill="${heat("Braços")}"/>
-          <rect x="68" y="32" width="10" height="34" rx="5" fill="${heat("Braços")}"/>
-          <rect x="30" y="61" width="30" height="16" rx="3" fill="${heat("Core")}"/>
-          <rect x="30" y="79" width="12" height="46" rx="5" fill="${heat("Pernas")}"/>
-          <rect x="48" y="79" width="12" height="46" rx="5" fill="${heat("Pernas")}"/>
-          <rect x="29" y="127" width="14" height="10" rx="2" fill="${heat("Pernas")}"/>
-          <rect x="47" y="127" width="14" height="10" rx="2" fill="${heat("Pernas")}"/>
+      <svg class="mapa-silhueta" viewBox="0 0 100 170" aria-hidden="true">
+        <g stroke="#171009" stroke-width=".9">
+          <!-- cabeça e pescoço -->
+          <circle cx="50" cy="13" r="8" fill="#c79b6f"/>
+          <rect x="46" y="21" width="8" height="6" fill="#b98d63"/>
+          <!-- trapézio (Costas) -->
+          <path d="M33,28 Q50,23 67,28 L66,34 Q50,29 34,34 Z" fill="${heat("Costas")}"/>
+          <!-- deltóides (Ombros) -->
+          <ellipse cx="32" cy="38" rx="7.5" ry="6.5" fill="${heat("Ombros")}"/>
+          <ellipse cx="68" cy="38" rx="7.5" ry="6.5" fill="${heat("Ombros")}"/>
+          <!-- peitorais (Peito), separados no esterno -->
+          <rect x="39" y="33" width="10.4" height="13" rx="4" fill="${heat("Peito")}"/>
+          <rect x="50.6" y="33" width="10.4" height="13" rx="4" fill="${heat("Peito")}"/>
+          <!-- bíceps (Braços) -->
+          <ellipse cx="26.5" cy="51" rx="5.2" ry="8.5" fill="${heat("Braços")}"/>
+          <ellipse cx="73.5" cy="51" rx="5.2" ry="8.5" fill="${heat("Braços")}"/>
+          <!-- antebraços (Braços), afilados -->
+          <polygon points="22.5,60 30.5,60 28.5,79 24.5,79" fill="${heat("Braços")}"/>
+          <polygon points="69.5,60 77.5,60 75.5,79 71.5,79" fill="${heat("Braços")}"/>
+          <!-- mãos -->
+          <circle cx="26.5" cy="83" r="3" fill="#b98d63"/>
+          <circle cx="73.5" cy="83" r="3" fill="#b98d63"/>
+          <!-- abdominais (Core), em pares -->
+          <rect x="42" y="63" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
+          <rect x="51" y="63" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
+          <rect x="42" y="70" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
+          <rect x="51" y="70" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
+          <rect x="43" y="77" width="6" height="5" rx="1.5" fill="${heat("Core")}"/>
+          <rect x="51" y="77" width="6" height="5" rx="1.5" fill="${heat("Core")}"/>
+          <!-- quadríceps (Pernas), coxas separadas -->
+          <polygon points="39,86 49.5,86 48,126 40,126" fill="${heat("Pernas")}"/>
+          <polygon points="50.5,86 61,86 60,126 52,126" fill="${heat("Pernas")}"/>
+          <!-- panturrilhas (Pernas) -->
+          <ellipse cx="44.5" cy="137" rx="5.4" ry="10.5" fill="${heat("Pernas")}"/>
+          <ellipse cx="55.5" cy="137" rx="5.4" ry="10.5" fill="${heat("Pernas")}"/>
+          <!-- pés -->
+          <rect x="39" y="148" width="12" height="5.5" rx="1.5" fill="#33200f"/>
+          <rect x="49" y="148" width="12" height="5.5" rx="1.5" fill="#33200f"/>
         </g>
       </svg>`;
 
