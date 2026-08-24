@@ -971,6 +971,44 @@ button {
 .evol-item { cursor:pointer; width:100%; }
 .evol-item:hover { border-color: var(--gold); filter:brightness(1.15); }
 .evol-svg { width:100%; height:auto; display:block; }
+
+/* ================= FORJA — loja de cosméticos ============= */
+.forja-saldo {
+  background: linear-gradient(180deg, #33220d, #1c1105);
+  border-color: var(--gold-dim);
+}
+.forja-saldo .cs-row {
+  justify-content: center;
+  font-size: 1.35rem;
+}
+.forja-saldo .cs-val { color: var(--gold-bright); }
+
+.shop-item {
+  display:flex;
+  align-items:center;
+  gap:.65rem;
+  padding:.6rem .7rem;
+  margin-bottom:.45rem;
+  background:#17100a;
+  border:1px solid var(--border);
+  border-left:3px solid var(--bronze);
+  border-radius:2px;
+}
+.si-icon {
+  width:36px;height:36px;flex-shrink:0;
+  display:grid;place-items:center;font-size:1.15rem;
+  background:#0d0803;border:1px solid var(--border-light);border-radius:50%;
+}
+.si-info { flex:1; min-width:0; }
+.si-nome { font-family:var(--font-title); font-weight:700; font-size:.82rem; color:var(--gold-bright); }
+.si-motivo { font-family:var(--font-pixel); font-size:.9rem; color:var(--text-dim); }
+.si-estado {
+  font-family:var(--font-pixel);
+  font-size:.88rem;
+  color:var(--text-dim);
+  white-space:nowrap;
+}
+.si-estado.on { color:var(--xp); }
 @media (max-width: 400px) {
   .mlabel { width: 72px; font-size:.85rem; }
   .mapa-silhueta { width: 74px; }
