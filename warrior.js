@@ -77,6 +77,7 @@ const Warrior = (() => {
     const v = calcMusculos(s);
     return MACRO.map(({ nome, musculos }) => ({
       nome,
+      musculos,
       pontos: musculos.reduce((n, m) => n + (v[m] || 0), 0)
     }));
   }
@@ -350,7 +351,7 @@ const Warrior = (() => {
     return `<div class="mapa-bars">${rows}</div>`;
   }
 
-  return { svg, mapaHTML, balancoHTML, mapaPct, mapaRelativo, balanco,
+  return { svg, mapaHTML, balancoHTML, mapaPct, balanco,
            rankGuerreiro, gruposMacroPontos, nivelDePontos, calcMusculos,
-           fatores, ARMARIO, EQUIPADO };
+           fatores, NIVEIS_MUSCULARES, ARMARIO, EQUIPADO };
 })();
