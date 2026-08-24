@@ -9,29 +9,136 @@ const Warrior = (() => {
 
   const CAP_PONTOS = 50; // séries-equivalentes para um grupo chegar a 100%
 
-  /* ---- registro de equipamentos por slot ---- */
-  const ARMARIO = {
-    cabeca: { "capacete_ferro": { metal: "#8a744a", escuro: "#42351c" } },
-    corpo:  { "armadura_ferro": { claro: "#99a0ac", medio: "#6d7480", escuro: "#3a3f47" } },
-    bracos: { "bracers_ferro":  { couro: "#4a2f18", metal: "#6d7480" } },
-    pernas: { "grevas_ferro":   { tecido: "#31241a", metal: "#565c66" } },
-    capa:   { "capa_couro":     { cor: "#5c2015", borda: "#2c0e06" } },
-    arma:   { "espada_ferro":   { lamina: "#c9ced6", guarda: "#c9a13b", punho: "#3a2412" } }
+  /* ---- catálogo de cosméticos por slot ----
+     origem: {tipo:"padrao"} | {tipo:"loja",preco[,nivel]}
+             | {tipo:"nivel"|"recordes"|"treinos"|"volume", qtd/nivel/kg} */
+  const SLOTS = {
+    cabeca:    { icone: "🪖", padrao: "elmo_ferro" },
+    corpo:     { icone: "🛡", padrao: "armadura_ferro" },
+    capa:      { icone: "🧣", padrao: "capa_nenhuma" },
+    luvas:     { icone: "🧤", padrao: "luvas_couro" },
+    calcas:    { icone: "👖", padrao: "calcas_couro" },
+    botas:     { icone: "👢", padrao: "botas_couro" },
+    acessorio: { icone: "📿", padrao: "colar_pano" },
+    arma:      { icone: "⚔", padrao: "espada_ferro" }
   };
 
-  /* slots equipados no momento (futuro: mover para o save do jogador) */
-  const EQUIPADO = {
-    cabeca: "capacete_ferro",
-    corpo:  "armadura_ferro",
-    bracos: "bracers_ferro",
-    pernas: "grevas_ferro",
-    capa:   "capa_couro",
-    arma:   "espada_ferro"
+  const COSMETICOS = [
+    // cabeça
+    { id: "elmo_ferro",       slot: "cabeca", nome: "Elmo de Ferro",      origem: { tipo: "padrao" } },
+    { id: "elmo_pluma",       slot: "cabeca", nome: "Elmo da Pluma",      origem: { tipo: "loja", preco: 150 } },
+    { id: "coroa_conquista",  slot: "cabeca", nome: "Coroa da Vitória",   origem: { tipo: "recordes", qtd: 20 } },
+    // corpo
+    { id: "armadura_ferro",   slot: "corpo",  nome: "Armadura de Ferro",  origem: { tipo: "padrao" } },
+    { id: "armadura_forja",   slot: "corpo",  nome: "Armadura da Forja",  origem: { tipo: "volume", kg: 50000 } },
+    { id: "armadura_campeao", slot: "corpo",  nome: "Armadura do Campeão",origem: { tipo: "recordes", qtd: 100 } },
+    // capa
+    { id: "capa_nenhuma",     slot: "capa",   nome: "Sem Capa",           origem: { tipo: "padrao" } },
+    { id: "capa_viajante",    slot: "capa",   nome: "Capa do Viajante",   origem: { tipo: "loja", preco: 100 } },
+    { id: "capa_guerreiro",   slot: "capa",   nome: "Capa do Guerreiro",  origem: { tipo: "loja", preco: 500, nivel: 10 } },
+    { id: "capa_campeao",     slot: "capa",   nome: "Capa do Campeão",    origem: { tipo: "loja", preco: 1000, nivel: 15 } },
+    { id: "manto_veterano",   slot: "capa",   nome: "Manto do Veterano",  origem: { tipo: "treinos", qtd: 50 } },
+    // luvas
+    { id: "luvas_couro",      slot: "luvas",  nome: "Luvas de Couro",     origem: { tipo: "padrao" } },
+    { id: "manoplas_forja",   slot: "luvas",  nome: "Manoplas da Forja",  origem: { tipo: "loja", preco: 120 } },
+    // calças
+    { id: "calcas_couro",     slot: "calcas", nome: "Calça de Couro",     origem: { tipo: "padrao" } },
+    { id: "calcas_aco",       slot: "calcas", nome: "Calça de Aço",       origem: { tipo: "loja", preco: 180 } },
+    // botas
+    { id: "botas_couro",      slot: "botas",  nome: "Botas de Couro",     origem: { tipo: "padrao" } },
+    { id: "coturnos_forja",   slot: "botas",  nome: "Coturnos da Forja",  origem: { tipo: "loja", preco: 160 } },
+    // acessório
+    { id: "colar_pano",       slot: "acessorio", nome: "Cordão de Pano",  origem: { tipo: "padrao" } },
+    { id: "amuleto_ouro",     slot: "acessorio", nome: "Amuleto de Ouro", origem: { tipo: "loja", preco: 250 } },
+    // arma
+    { id: "espada_ferro",     slot: "arma",   nome: "Espada de Ferro",    origem: { tipo: "padrao" } },
+    { id: "espada_campeao",   slot: "arma",   nome: "Espada do Campeão",  origem: { tipo: "loja", preco: 800, nivel: 12 } }
+  ];
+
+  /* paletas/detalhes de desenho por item */
+  const ESTILOS = {
+    elmo_ferro:        { metal: "#8a744a", escuro: "#42351c" },
+    elmo_pluma:        { metal: "#8a744a", escuro: "#42351c", pluma: "#a83a2a" },
+    coroa_conquista:   { ouro: "#d9b345", escuro: "#6b5210" },
+    armadura_ferro:    { claro: "#99a0ac", medio: "#6d7480", escuro: "#3a3f47" },
+    armadura_forja:    { claro: "#c09a52", medio: "#86622a", escuro: "#42300f", detalhe: "#e0b34d" },
+    armadura_campeao:  { claro: "#dde2e9", medio: "#97a0ad", escuro: "#2f333b", detalhe: "#e0b34d" },
+    capa_viajante:     { cor: "#6b4a2a", borda: "#33200f" },
+    capa_guerreiro:    { cor: "#7c1f14", borda: "#380d06" },
+    capa_campeao:      { cor: "#26436b", borda: "#101f38" },
+    manto_veterano:    { cor: "#31502b", borda: "#16260f" },
+    luvas_couro:       { cor: "#4a2f18" },
+    manoplas_forja:    { cor: "#565c66" },
+    calcas_couro:      { cor: "#43301c" },
+    calcas_aco:        { cor: "#565c66" },
+    botas_couro:       { cor: "#33200f" },
+    coturnos_forja:    { cor: "#1c130a" },
+    amuleto_pano:      { cordao: "#97814f" },
+    amuleto_ouro:      { cordao: "#c9a13b", pedra: "#c0392b" },
+    espada_ferro:      { lamina: "#c9ced6", guarda: "#c9a13b", punho: "#3a2412" },
+    espada_campeao:    { lamina: "#eef3fa", guarda: "#e0b34d", punho: "#5c2015", brilho: true }
   };
 
-  const eq = slot => ARMARIO[slot][EQUIPADO[slot]];
+  const PADRAO = {};
+  for (const [slot, def] of Object.entries(SLOTS)) PADRAO[slot] = def.padrao;
 
-  /* ---- volume por músculo derivado do histórico real ----
+  const porId = id => COSMETICOS.find(c => c.id === id) || null;
+  const estiloDe = id => ESTILOS[id] || null;
+  function equipado(s, slot) {
+    const map = s.personagem.equipamento || {};
+    return map[slot] || SLOTS[slot].padrao;
+  }
+
+  /* ---- posse e requisitos ---- */
+  function requisitoAtendido(s, o) {
+    switch (o.tipo) {
+      case "nivel":    return s.personagem.nivel >= o.nivel;
+      case "recordes": return recordesQuebrados(s) >= o.qtd;
+      case "treinos":  return s.treinos.length >= o.qtd;
+      case "volume":   return volumeTotalGeral(s) >= o.kg;
+      default:         return true;
+    }
+  }
+
+  function reqTexto(o) {
+    switch (o.tipo) {
+      case "nivel":    return `Nível ${o.nivel}`;
+      case "recordes": return `${o.qtd} recordes`;
+      case "treinos":  return `${o.qtd} treinos completos`;
+      case "volume":   return `${fmtNum(o.kg)} kg de volume`;
+      case "loja":
+        return o.nivel ? `${fmtNum(o.preco)} 🪙 · Nível ${o.nivel}` : `${fmtNum(o.preco)} 🪙`;
+      default: return "";
+    }
+  }
+
+  function possui(s, id) {
+    const c = porId(id);
+    if (!c) return false;
+    if (c.origem.tipo === "padrao") return true;
+    if (c.origem.tipo === "loja") return Array.isArray(s.inventario) && s.inventario.includes(id);
+    return requisitoAtendido(s, c.origem); // recompensas são derivadas do progresso
+  }
+
+  /* estado de um item na loja/inventário */
+  function statusItem(s, item) {
+    if ((s.personagem.equipamento || {})[item.slot] === item.id)
+      return { acao: "equipado", motivo: "Equipado" };
+    if (possui(s, item.id))
+      return { acao: "equipar", motivo: "Possui" };
+    if (item.origem.tipo === "loja") {
+      if (item.origem.nivel && s.personagem.nivel < item.origem.nivel)
+        return { acao: "bloqueado", motivo: `🔒 Nível ${item.origem.nivel}` };
+      if (s.personagem.ouro < item.origem.preco)
+        return { acao: "caro", motivo: `🔒 Faltam ${fmtNum(item.origem.preco - s.personagem.ouro)} 🪙` };
+      return { acao: "comprar", motivo: `${fmtNum(item.origem.preco)} 🪙` };
+    }
+    if (!requisitoAtendido(s, item.origem))
+      return { acao: "bloqueado", motivo: `🔒 ${reqTexto(item.origem)}` };
+    return { acao: "reivindicar", motivo: "Recompensa desbloqueada!" };
+  }
+
+  /* ---- agrupamento em 6 grandes grupos + níveis de treino ----
      série em exercício principal vale 1 ponto; secundário, 0.5     */
   function calcMusculos(s) {
     const vol = {};
@@ -180,26 +287,35 @@ const Warrior = (() => {
     const armW  = 8 + f.bracos * 6;    // espessura do braço
     const pdR   = 5.5 + f.ombros * 4.5;// raio da pauldron
 
-    const cor = eq("corpo"), cap = eq("capa"), cab = eq("cabeca"),
-          per = eq("pernas"), br = eq("bracos"), arm = eq("arma");
+    const stCorpo = estiloDe(equipado(s, "corpo"));
+    const stCab   = estiloDe(equipado(s, "cabeca"));
+    const stCalc  = estiloDe(equipado(s, "calcas"));
+    const stBotas = estiloDe(equipado(s, "botas"));
+    const stLuvas = estiloDe(equipado(s, "luvas"));
+    const stArma  = estiloDe(equipado(s, "arma"));
+    const idCapa  = equipado(s, "capa");
+    const stCapa  = estiloDe(idCapa);
 
     const uid = "wg" + Math.random().toString(36).slice(2, 7);
 
-    // camada: capa (atrás de tudo)
-    const capa = `
-      <path d="M ${cx - 15},45 Q ${cx},41 ${cx + 15},45
-               L ${cx + 19},127 Q ${cx},133 ${cx - 19},127 Z"
-            fill="${cap.cor}" stroke="${cap.borda}" stroke-width="2"/>
-      <path d="M ${cx - 8},48 L ${cx - 11},122 M ${cx + 8},48 L ${cx + 11},122"
-            stroke="${cap.borda}" stroke-width="1" opacity=".5" fill="none"/>`;
+    // camada: capa (atrás de tudo; ausente se "Sem Capa")
+    let capa = "";
+    if (idCapa !== "capa_nenhuma" && stCapa) {
+      capa = `
+        <path d="M ${cx - 15},45 Q ${cx},41 ${cx + 15},45
+                 L ${cx + 19},127 Q ${cx},133 ${cx - 19},127 Z"
+              fill="${stCapa.cor}" stroke="${stCapa.borda}" stroke-width="2"/>
+        <path d="M ${cx - 8},48 L ${cx - 11},122 M ${cx + 8},48 L ${cx + 11},122"
+              stroke="${stCapa.borda}" stroke-width="1" opacity=".5" fill="none"/>`;
+    }
 
     // camada: pernas + grevas
     let pernas = "";
     for (const side of [-1, 1]) {
       const lx = side < 0 ? cx - 4 - legW : cx + 4;
       pernas += `
-        <rect x="${lx}" y="93" width="${legW}" height="33" rx="2" fill="${per.tecido}" stroke="#171009"/>
-        <rect x="${lx - 1}" y="123" width="${legW + 2}" height="17" rx="2" fill="${per.metal}" stroke="#171009"/>
+        <rect x="${lx}" y="93" width="${legW}" height="33" rx="2" fill="${stCalc.cor}" stroke="#171009"/>
+        <rect x="${lx - 1}" y="123" width="${legW + 2}" height="17" rx="2" fill="${stBotas.cor}" stroke="#171009"/>
         <rect x="${lx - 1}" y="123" width="${legW + 2}" height="3" fill="#ffffff" opacity=".12"/>`;
     }
 
@@ -207,13 +323,13 @@ const Warrior = (() => {
     const torso = `
       <path d="M ${cx - sh},40 Q ${cx},36 ${cx + sh},40
                L ${cx + waist + 2},91 L ${cx - waist - 2},91 Z"
-            fill="url(#${uid}-m)" stroke="${cor.escuro}" stroke-width="1.5"/>
+            fill="url(#${uid}-m)" stroke="${stCorpo.escuro}" stroke-width="1.5"/>
       <path d="M ${cx - sh * .62},53 Q ${cx - sh * .31},60 ${cx},54
                Q ${cx + sh * .31},60 ${cx + sh * .62},53"
-            stroke="${cor.escuro}" fill="none" stroke-width="1.6"
+            stroke="${stCorpo.escuro}" fill="none" stroke-width="1.6"
             opacity="${(.3 + f.torso * .6).toFixed(2)}"/>
       <path d="M ${cx},60 L ${cx},72 M ${cx - 5},64 L ${cx + 5},64 M ${cx - 4},70 L ${cx + 4},70"
-            stroke="${cor.escuro}" stroke-width="1.2" fill="none"
+            stroke="${stCorpo.escuro}" stroke-width="1.2" fill="none"
             opacity="${(.15 + f.core * .55).toFixed(2)}"/>
       <rect x="${cx - waist - 3}" y="85" width="${(waist + 3) * 2}" height="7"
             fill="#4a2f18" stroke="#241708"/>
@@ -226,13 +342,13 @@ const Warrior = (() => {
       bracos += `
         <g transform="rotate(${side * 9} ${px} 47)">
           <rect x="${px - armW / 2}" y="44" width="${armW}" height="30" rx="${armW / 2}"
-                fill="${cor.medio}" stroke="#171009"/>
+                fill="${stCorpo.medio}" stroke="#171009"/>
           <rect x="${px - armW / 2}" y="70" width="${armW}" height="16" rx="2"
                 fill="${br.couro}" stroke="#171009"/>
-          <circle cx="${px}" cy="89" r="3.2" fill="${br.metal}" stroke="#171009"/>
+          <circle cx="${px}" cy="89" r="3.2" fill="${stLuvas.cor}" stroke="#171009"/>
         </g>
-        <circle cx="${px}" cy="46" r="${pdR}" fill="${cor.claro}" stroke="#171009" stroke-width="1.4"/>
-        <circle cx="${px}" cy="46" r="${pdR * .45}" fill="none" stroke="${cor.escuro}" opacity=".6"/>`;
+        <circle cx="${px}" cy="46" r="${pdR}" fill="${stCorpo.claro}" stroke="#171009" stroke-width="1.4"/>
+        <circle cx="${px}" cy="46" r="${pdR * .45}" fill="none" stroke="${stCorpo.escuro}" opacity=".6"/>`;
     }
 
     // camada: cabeça + capacete
@@ -240,20 +356,20 @@ const Warrior = (() => {
       <rect x="${cx - 3}" y="31" width="6" height="7" fill="#b98d63" stroke="#171009"/>
       <circle cx="${cx}" cy="25" r="8.5" fill="#c79b6f" stroke="#171009"/>
       <path d="M ${cx - 10},25 A 10 10 0 0 1 ${cx + 10},25 L ${cx + 10},29
-               L ${cx - 10},29 Z" fill="${cab.metal}" stroke="${cab.escuro}" stroke-width="1.2"/>
-      <rect x="${cx - 1}" y="26" width="2" height="7" fill="${cab.metal}" stroke="${cab.escuro}" stroke-width=".6"/>
+               L ${cx - 10},29 Z" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width="1.2"/>
+      <rect x="${cx - 1}" y="26" width="2" height="7" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width=".6"/>
       <path d="M ${cx - 10},25 L ${cx},17 L ${cx + 10},25" fill="none"
-            stroke="${cab.escuro}" stroke-width="1.4"/>`;
+            stroke="${stCab.escuro}" stroke-width="1.4"/>`;
 
     // camada: espada (mão direita)
     const sx = cx + sh + armW + 9;
     const espada = `
       <g transform="rotate(6 ${sx} 60)">
-        <rect x="${sx - 1.6}" y="28" width="3.2" height="49" fill="${arm.lamina}" stroke="#4a4e55" stroke-width=".7"/>
-        <path d="M ${sx - 1.6},28 L ${sx},21 L ${sx + 1.6},28 Z" fill="${arm.lamina}" stroke="#4a4e55" stroke-width=".7"/>
-        <rect x="${sx - 7}" y="77" width="14" height="3.6" rx="1" fill="${arm.guarda}" stroke="#241708"/>
-        <rect x="${sx - 2}" y="80.6" width="4" height="9" rx="1.5" fill="${arm.punho}" stroke="#171009"/>
-        <circle cx="${sx}" cy="92" r="2.8" fill="${arm.guarda}" stroke="#241708"/>
+        <rect x="${sx - 1.6}" y="28" width="3.2" height="49" fill="${stArma.lamina}" stroke="#4a4e55" stroke-width=".7"/>
+        <path d="M ${sx - 1.6},28 L ${sx},21 L ${sx + 1.6},28 Z" fill="${stArma.lamina}" stroke="#4a4e55" stroke-width=".7"/>
+        <rect x="${sx - 7}" y="77" width="14" height="3.6" rx="1" fill="${stArma.guarda}" stroke="#241708"/>
+        <rect x="${sx - 2}" y="80.6" width="4" height="9" rx="1.5" fill="${stArma.punho}" stroke="#171009"/>
+        <circle cx="${sx}" cy="92" r="2.8" fill="${stArma.guarda}" stroke="#241708"/>
       </g>`;
 
     return `
@@ -261,8 +377,8 @@ const Warrior = (() => {
          aria-label="Guerreiro do personagem" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="${uid}-m" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="${cor.claro}"/>
-          <stop offset="1" stop-color="${cor.medio}"/>
+          <stop offset="0" stop-color="${stCorpo.claro}"/>
+          <stop offset="1" stop-color="${stCorpo.medio}"/>
         </linearGradient>
       </defs>
       ${capa}
@@ -353,5 +469,6 @@ const Warrior = (() => {
 
   return { svg, mapaHTML, balancoHTML, mapaPct, balanco,
            rankGuerreiro, gruposMacroPontos, nivelDePontos, calcMusculos,
-           fatores, NIVEIS_MUSCULARES, ARMARIO, EQUIPADO };
+           fatores, NIVEIS_MUSCULARES, COSMETICOS, SLOTS, PADRAO,
+           porId, possui, statusItem, reqTexto };
 })();
