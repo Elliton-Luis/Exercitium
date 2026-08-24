@@ -64,6 +64,41 @@ const Warrior = (() => {
     };
   }
 
+  /* ---- mapa RELATIVO ao total treinado ----
+     Cada grupo recebe sua fatia do volume total (soma = 100%).
+     A cor acompanha a proporção: o grupo mais treinado fica no
+     vermelho intenso; os demais, proporcionais a ele (escala de
+     calor dourado -> vermelho). Ex.: só tríceps+ombros+peito
+     treinados => cada um ~33%, todos em tom avermelhado forte. */
+  function mapaRelativo(s) {
+    const v = calcMusculos(s);
+    const grupos = [
+      "Peitoral", "Costas", "Ombros", "Bíceps", "Tríceps",
+      "Quadríceps", "Posterior", "Glúteos", "Core", "Panturrilha"
+    ];
+    const total = grupos.reduce((n, g) => n + (v[g] || 0), 0);
+    const res = grupos.map(g => ({
+      nome: g,
+      vol: v[g] || 0,
+      share: total > 0 ? (v[g] || 0) / total * 100 : 0
+    }));
+    if (total > 0) {
+      // arredonda e fecha a soma exata em 100%, ajustando o maior grupo
+      for (const g of res) g.share = Math.round(g.share);
+      const maior = res.reduce((a, b) => (b.share > a.share ? b : a), res[0]);
+      maior.share += 100 - res.reduce((n, g) => n + g.share, 0);
+    }
+    return res;
+  }
+
+  /* escala de calor: ratio 0 = dourado apagado, 1 = vermelho intenso */
+  function calor(ratio, alpha) {
+    const r = Math.round(184 + (196 - 184) * ratio);   // 184 -> 196
+    const g = Math.round(146 + (58 - 146) * ratio);    // 146 -> 58
+    const b = Math.round(58 + (42 - 58) * ratio);      // 58 -> 42
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
   /* fatores corporais 0–1 usados para dimensionar o desenho */
   function fatores(p) {
     const f = x => Math.min(1, (x || 0) / 100);
@@ -182,41 +217,65 @@ const Warrior = (() => {
     </svg>`;
   }
 
-  /* ---- mapa de músculos (silhueta + barras com % reais) ---- */
+  /* ---- mapa de músculos (silhueta + barras, cores relativas) ---- */
   function mapaHTML(s) {
-    const p = mapaPct(s);
-    const op = x => ((x || 0) / 100 * .8 + .12).toFixed(2);
+    const grupos = mapaRelativo(s);
+    const maxShare = Math.max(...grupos.map(g => g.share), 1);
+    const porNome = {};
+    for (const g of grupos) porNome[g.nome] = g;
+
+    // ratio 0..1 de cada grupo em relação ao mais treinado
+    const ratioDe = g => (g && g.vol > 0 ? Math.max(.18, g.share / maxShare) : 0);
+    const ratioNome = (...nomes) => Math.max(...nomes.map(n => ratioDe(porNome[n])));
+
+    // região da silhueta: cor de calor do grupo dominante da região
+    const regiao = (...nomes) => calor(ratioNome(...nomes), 1);
 
     const silhueta = `
       <svg class="mapa-silhueta" viewBox="0 0 90 150" aria-hidden="true">
-        <g stroke="#7a5c2e" stroke-width="1.5" fill="rgba(212,168,67,.08)">
+        <g stroke="#7a5c2e" stroke-width="1.5">
           <circle cx="45" cy="16" r="9"/>
           <rect x="39" y="26" width="12" height="5"/>
-          <rect x="24" y="31" width="42" height="10" rx="3" fill-opacity="${op(p["Ombros"])}"/>
-          <rect x="29" y="42" width="32" height="18" rx="3" fill-opacity="${op(Math.max(p["Peitoral"], p["Costas"]))}"/>
-          <rect x="12" y="32" width="10" height="34" rx="5" fill-opacity="${op(Math.max(p["Bíceps"], p["Tríceps"]))}"/>
-          <rect x="68" y="32" width="10" height="34" rx="5" fill-opacity="${op(Math.max(p["Bíceps"], p["Tríceps"]))}"/>
-          <rect x="30" y="61" width="30" height="16" rx="3" fill-opacity="${op(p["Core"])}"/>
-          <rect x="30" y="79" width="12" height="46" rx="5" fill-opacity="${op(Math.max(p["Quadríceps"], p["Posterior"]))}"/>
-          <rect x="48" y="79" width="12" height="46" rx="5" fill-opacity="${op(Math.max(p["Quadríceps"], p["Posterior"]))}"/>
-          <rect x="29" y="127" width="14" height="10" rx="2" fill-opacity="${op(p["Panturrilha"])}"/>
-          <rect x="47" y="127" width="14" height="10" rx="2" fill-opacity="${op(p["Panturrilha"])}"/>
+          <rect x="24" y="31" width="42" height="10" rx="3"
+                fill="${regiao("Ombros")}"/>
+          <rect x="29" y="42" width="32" height="18" rx="3"
+                fill="${regiao("Peitoral", "Costas")}"/>
+          <rect x="12" y="32" width="10" height="34" rx="5"
+                fill="${regiao("Bíceps", "Tríceps")}"/>
+          <rect x="68" y="32" width="10" height="34" rx="5"
+                fill="${regiao("Bíceps", "Tríceps")}"/>
+          <rect x="30" y="61" width="30" height="16" rx="3"
+                fill="${regiao("Core")}"/>
+          <rect x="30" y="79" width="12" height="46" rx="5"
+                fill="${regiao("Quadríceps", "Posterior", "Glúteos")}"/>
+          <rect x="48" y="79" width="12" height="46" rx="5"
+                fill="${regiao("Quadríceps", "Posterior", "Glúteos")}"/>
+          <rect x="29" y="127" width="14" height="10" rx="2"
+                fill="${regiao("Panturrilha")}"/>
+          <rect x="47" y="127" width="14" height="10" rx="2"
+                fill="${regiao("Panturrilha")}"/>
         </g>
       </svg>`;
 
-    const barras = Object.entries(p).map(([nome, val]) => `
-      <div class="mrow">
-        <span class="mlabel">${nome}</span>
-        <div class="mbar"><div style="width:${val}%"></div></div>
-        <span class="mpct">${val}%</span>
-      </div>`).join("");
+    const barras = grupos.map(g => {
+      const r = ratioDe(g);
+      return `
+      <div class="mrow${g.vol > 0 ? "" : " mzero"}">
+        <span class="mlabel">${g.nome}</span>
+        <div class="mbar"><div style="width:${(r * 100).toFixed(0)}%;background:${calor(r, 1)}"></div></div>
+        <span class="mpct">${g.share}%</span>
+      </div>`;
+    }).join("");
 
     return `
       <div class="mapa-wrap">
         ${silhueta}
-        <div class="mapa-bars">${barras}</div>
+        <div class="mapa-bars">
+          <p class="mapa-legenda">Intensidade proporcional ao total treinado</p>
+          ${barras}
+        </div>
       </div>`;
   }
 
-  return { svg, mapaHTML, mapaPct, calcMusculos, fatores, ARMARIO, EQUIPADO };
+  return { svg, mapaHTML, mapaPct, mapaRelativo, calcMusculos, fatores, ARMARIO, EQUIPADO };
 })();

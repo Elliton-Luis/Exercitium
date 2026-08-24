@@ -5,6 +5,12 @@ Escolha exercício → registre séries → ganhe XP → quebre recordes → sub
 
 Não é um sistema de academia: é um save de RPG no qual o treino é a forma de evoluir o personagem.
 
+## Identidade visual
+
+A interface segue a linguagem de **uma ficha de personagem de RPG medieval antigo**: fundo de pedra escura iluminada por tocha, painéis em madeira e couro com cantos ornamentados em bronze, botões com aparência de metal cinzelado, tipografia medieval legível (Cinzel/Cinzel Decorative para títulos, IM Fell English para texto, VT323 para números).
+
+Na aba **Personagem** há um guerreiro desenhado em SVG cujo corpo cresce conforme os músculos realmente treinados (peito, costas, ombros, braços e pernas são dimensionados pelo histórico), além do **Mapa de Músculos**: silhueta e barras onde cada grupo recebe uma cor na escala de calor dourado→vermelho, proporcional à sua fatia do volume total treinado.
+
 ## Como executar
 
 Abra `index.html` no navegador — funciona 100% offline, sem backend.
@@ -45,6 +51,7 @@ style.css    identidade visual RPG medieval retrô
 data.js      biblioteca padrão de exercícios + conquistas + curva de XP
 state.js     estado e persistência (localStorage), CRUDs, export/import
 game.js      regras de jogo (XP, níveis, recordes, streak, conquistas)
+warrior.js   guerreiro visual em SVG + mapa de músculos (derivados do histórico)
 ui.js        telas, fluxos e feedback visual
 ```
 

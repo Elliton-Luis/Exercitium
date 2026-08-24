@@ -335,16 +335,12 @@ const UI = {
       : "Novato da Taverna";
   },
 
-  /* ================= TAVERNA — Salão do Guerreiro ================= */
+  /* ================= TAVERNA ================= */
   render_tavern(scr) {
     const p = State.s.personagem;
     const st = State.s.streak;
-    const g = this.statsGlobais();
+    const stats = this.statsGlobais();
     const need = Game.xpNecessario(p.nivel);
-
-    // grupo muscular com maior intensidade real
-    const mapa = Warrior.mapaPct(State.s);
-    const [gNome, gPct] = Object.entries(mapa).sort((a, b) => b[1] - a[1])[0] || ["—", 0];
 
     scr.innerHTML = `
       <div class="tavern-banner">
@@ -354,29 +350,14 @@ const UI = {
 
       ${this._htmlRecuperacao()}
 
-      <div class="panel ficha">
-        <div class="ficha-top">
-          <div class="ficha-warrior">${Warrior.svg(State.s)}</div>
-          <div class="ficha-id">
-            <div class="char-name">${escapar(p.nome)}</div>
-            <div class="char-class">${this.tituloPorNivel(p.nivel)} · Nível ${p.nivel}</div>
-            <div class="xpbar" style="margin-top:.5rem;">
-              <div class="xpbar-fill" style="width:${Math.min(100, p.xp / need * 100)}%"></div>
-              <span class="xpbar-text">${fmtNum(p.xp)}/${fmtNum(need)} XP</span>
-            </div>
-            <div class="cs-row"><span>🪙 Ouro</span><span class="cs-val">${fmtNum(p.ouro)}</span></div>
-            <div class="cs-row"><span>🔥 Streak</span><span class="cs-val">${st.atual} dias</span></div>
-          </div>
-        </div>
-
-        <div class="ornament">✦ ✦ ✦</div>
-
-        <div class="kv-grid">
-          <div class="kv"><div class="k">Treinos</div><div class="v">⚒ ${g.numTreinos}</div></div>
-          <div class="kv"><div class="k">Recordes</div><div class="v">💥 ${g.recordes}</div></div>
-          <div class="kv"><div class="k">Volume total</div><div class="v">${fmtNum(g.volume)}<small style="font-size:.8rem"> kg</small></div></div>
-          <div class="kv"><div class="k">Mais treinado</div><div class="v" style="font-size:1rem;line-height:1.2;padding-top:.15rem;">${gPct > 0 ? `${gNome} · ${gPct}%` : "—"}</div></div>
-        </div>
+      <div class="parchment character-summary">
+        <div class="cs-name">${escapar(p.nome)}</div>
+        <div class="cs-row"><span>Nível</span><span class="cs-val">${p.nivel}</span></div>
+        <div class="cs-row"><span>Ouro</span><span class="cs-val">🪙 ${fmtNum(p.ouro)}</span></div>
+        <div class="cs-row"><span>Streak</span><span class="cs-val">🔥 ${st.atual} dias</span></div>
+        <div class="cs-row"><span>Treinos</span><span class="cs-val">⚒ ${stats.numTreinos}</span></div>
+        <div class="cs-row"><span>Recordes quebrados</span><span class="cs-val">💥 ${stats.recordes}</span></div>
+        <div class="xpbar big"><div class="xpbar-fill" style="width:${Math.min(100, p.xp/need*100)}%"></div><span class="xpbar-text">NV ${p.nivel} · ${fmtNum(p.xp)}/${fmtNum(need)} XP</span></div>
       </div>
 
       <button class="btn btn-primary btn-big" data-action="start-workout">⚔ INICIAR TREINO</button>
