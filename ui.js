@@ -156,8 +156,10 @@ const UI = {
     "goto-achievements":function () { this.showScreen("achievements"); },
     "goto-history":     function () { this.showScreen("history"); },
     "goto-saves":       function () { this.showScreen("saves"); },
+    "goto-stats":       function () { this.showScreen("stats"); },
     "back":             function () { this.showScreen("tavern"); },
 
+    "select-evolution": function (id) { this.detalheExercicio(id); },
     "select-exercise": function (id) {
       if (this._pickCtx) { this._pickExercicio(id); return; }
       if (this._modoTreino) {
@@ -368,6 +370,7 @@ const UI = {
         <button class="menu-item" data-action="goto-character"><span class="mi-icon">👤</span><span>Personagem</span></button>
         <button class="menu-item" data-action="goto-achievements"><span class="mi-icon">🎖</span><span>Conquistas</span></button>
         <button class="menu-item" data-action="goto-history"><span class="mi-icon">📖</span><span>Histórico</span></button>
+        <button class="menu-item" data-action="goto-stats"><span class="mi-icon">📈</span><span>Evolução</span></button>
         <button class="menu-item" data-action="goto-saves"><span class="mi-icon">💾</span><span>Saves</span></button>
       </nav>
     `;
@@ -1189,6 +1192,7 @@ const UI = {
     const ex = State.exercicioPorId(id);
     if (!ex) return;
     const st = State.statsExercicio(id);
+    const sessoes = Stats.evolucaoExercicio(id);
     const ultimos = State.treinosDoExercicio(id).slice(0, 8);
 
     const linhas = ultimos.map(t => `
@@ -1209,6 +1213,11 @@ const UI = {
         <p class="m-sub" style="text-align:left">Volume total: <b style="color:var(--gold-bright)">${fmtNum(st.volumeTotal)} kg</b> · Treinos: <b style="color:var(--gold-bright)">${st.numTreinos}</b></p>
       </div>
       ${linhas ? `<div class="ornament">✦ ✦ ✦</div><div style="max-height:180px;overflow-y:auto;text-align:left;">${linhas}</div>` : ""}
+      ${sessoes.length >= 2 ? `
+        <div class="ornament">✦ ✦ ✦</div>
+        <div class="panel-title" style="margin-bottom:.3rem;">Peso Máximo por Sessão</div>
+        ${this._evolSVG(sessoes)}
+        <p class="m-sub" style="color:var(--text-dim);font-size:.78rem;">${sessoes.length} sessões registradas</p>` : ""}
       <div class="m-buttons">
         <button class="btn btn-ghost" data-action="close-modal">FECHAR</button>
         <button class="btn btn-primary" onclick="UI.fecharModal();UI.iniciarSessaoUnica('${id}')">⚔ TREINAR</button>
@@ -1250,6 +1259,129 @@ const UI = {
   },
 
   /* ================= PERSONAGEM ================= */
+  /* ================= EVOLUÇÃO (estatísticas) ================= */
+
+  /* gráfico de colunas temático: [{label, valor, titulo}] */
+  _chartCols(dados) {
+    if (!dados.length) return `<p class="empty-msg" style="padding:.8rem">Sem dados ainda.</p>`;
+    const max = Math.max(...dados.map(d => d.valor), 1);
+    return `
+      <div class="chart-cols">
+        ${dados.map(d => `
+          <div class="vcol" title="${escapar(d.titulo)}: ${fmtNum(d.valor)} kg">
+            <div class="vfill-wrap"><div class="vfill" style="height:${Math.max(2, d.valor / max * 100)}%"></div></div>
+            <span class="vlabel">${d.label}</span>
+          </div>`).join("")}
+      </div>`;
+  },
+
+  render_stats(scr) {
+    const s = State.s;
+    const g = Stats.gerais(s);
+
+    // volume semanal (últimas 8 semanas com dados) e mensal (6 meses)
+    const semanas = Stats.volumePorPeriodo(s, "semana", 8);
+    const meses = Stats.volumePorPeriodo(s, "mes", 6);
+
+    // volume por grupo macro (kg distribuídos entre músculos principais)
+    const volGrupo = Stats.volumePorGrupo(s);
+    const macroVol = Warrior.gruposMacroPontos(s).map(gm => {
+      const kg = gm.musculos.reduce((n, m) => n + (volGrupo[m] || 0), 0);
+      return { nome: gm.nome, kg };
+    });
+    const maxKg = Math.max(...macroVol.map(m => m.kg), 1);
+
+    // exercícios em destaque por volume acumulado
+    const top = State.todosExercicios()
+      .map(ex => ({ ex, st: State.statsExercicio(ex.id) }))
+      .filter(x => x.st.numTreinos > 0)
+      .sort((a, b) => b.st.volumeTotal - a.st.volumeTotal)
+      .slice(0, 8);
+
+    scr.innerHTML = `
+      <div class="workout-head">
+        <h1 class="workout-ex-name">📈 Evolução</h1>
+        <button class="btn btn-ghost" data-action="back" style="width:auto;margin:.6rem auto;padding:.4rem 1.2rem;font-size:.8rem;">← Taverna</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Crônicas em Números</div>
+        <div class="kv-grid">
+          <div class="kv"><div class="k">Treinos</div><div class="v">⚒ ${g.treinos}</div></div>
+          <div class="kv"><div class="k">Séries</div><div class="v">${g.series}</div></div>
+          <div class="kv"><div class="k">Repetições</div><div class="v">${fmtNum(g.repeticoes)}</div></div>
+          <div class="kv"><div class="k">Volume total</div><div class="v">${fmtNum(g.volume)}<small style="font-size:.8rem"> kg</small></div></div>
+          <div class="kv"><div class="k">Peso máximo</div><div class="v">${g.pesoMax ? g.pesoMax + " kg" : "—"}</div></div>
+          <div class="kv"><div class="k">Recordes</div><div class="v">💥 ${g.recordes}</div></div>
+          <div class="kv"><div class="k">XP acumulado</div><div class="v">${fmtNum(g.xpTotal)}</div></div>
+          <div class="kv"><div class="k">Streak</div><div class="v">🔥 ${g.streakAtual} · 🏅 ${g.streakMelhor}</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Volume por Semana</div>
+        ${this._chartCols(semanas.map(w => ({
+          label: w.label,
+          valor: w.valor,
+          titulo: "Semana de " + w.label
+        })))}
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Volume por Mês</div>
+        ${this._chartCols(meses.map(m => ({
+          label: m.label,
+          valor: m.valor,
+          titulo: m.label + "/" + m.chave.slice(0, 4)
+        })))}
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Volume por Grupo</div>
+        ${macroVol.every(m => m.kg === 0) ? `<p class="empty-msg" style="padding:.8rem">Sem dados ainda.</p>`
+          : macroVol.filter(m => m.kg > 0).sort((a, b) => b.kg - a.kg).map(m => `
+            <div class="mrow">
+              <span class="mlabel">${m.nome}</span>
+              <div class="mbar"><div style="width:${m.kg / maxKg * 100}%"></div></div>
+              <span class="mpct">${fmtNum(Math.round(m.kg))}<small style="font-size:.75rem">kg</small></span>
+            </div>`).join("")}
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Forjas Favoritas</div>
+        ${top.length ? top.map(({ ex, st }) => `
+          <button class="hist-entry evol-item" data-action="select-evolution" data-arg="${ex.id}">
+            <span class="he-ex">${escapar(ex.nome)}</span>
+            <span class="he-sets">${st.melhorSerie ? `${st.melhorSerie.valor}×${st.melhorSerie.reps}` : "—"} · ${fmtNum(st.volumeTotal)} kg</span>
+          </button>`).join("")
+        : `<p class="empty-msg">Nenhum treino registrado ainda.</p>`}
+      </div>
+    `;
+  },
+
+  /* mini-gráfico SVG: peso máximo por sessão */
+  _evolSVG(sessoes) {
+    if (!sessoes || sessoes.length < 2) return "";
+    const w = 280, h = 80, padX = 6, padY = 10;
+    const max = Math.max(...sessoes.map(x => x.maxPeso));
+    const min = Math.min(...sessoes.map(x => x.maxPeso), 0);
+    const span = Math.max(max - min, 1);
+    const px = i => padX + i * ((w - padX * 2) / (sessoes.length - 1));
+    const py = v => h - padY - (v - min) / span * (h - padY * 2);
+    const pontos = sessoes.map((x, i) => `${px(i)},${py(x.maxPeso)}`).join(" ");
+    const ultimo = sessoes[sessoes.length - 1];
+
+    return `
+      <svg class="evol-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="Peso máximo por sessão">
+        <polyline points="${pontos}" fill="none" stroke="#b8923a" stroke-width="2"/>
+        ${sessoes.map((x, i) =>
+          `<circle cx="${px(i)}" cy="${py(x.maxPeso)}" r="3" fill="#e8cd85" stroke="#241300"/>`).join("")}
+        <line x1="${padX}" y1="${h - 4}" x2="${w - padX}" y2="${h - 4}" stroke="#4e381a"/>
+        <text x="${w / 2}" y="${py(ultimo.maxPeso) - 8}" text-anchor="middle"
+              fill="#e8cd85" font-size="12">${ultimo.maxPeso} kg</text>
+      </svg>`;
+  },
+
   render_character(scr) {
     const p = State.s.personagem;
     const st = State.s.streak;
