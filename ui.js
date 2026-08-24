@@ -327,12 +327,24 @@ const UI = {
     }
   },
 
-  /* ================= TAVERNA ================= */
+  tituloPorNivel(nivel) {
+    return nivel >= 40 ? "Lenda Viva"
+      : nivel >= 25 ? "Cavaleiro de Ferro"
+      : nivel >= 15 ? "Guerreiro"
+      : nivel >= 8 ? "Escudeiro"
+      : "Novato da Taverna";
+  },
+
+  /* ================= TAVERNA — Salão do Guerreiro ================= */
   render_tavern(scr) {
     const p = State.s.personagem;
     const st = State.s.streak;
-    const stats = this.statsGlobais();
+    const g = this.statsGlobais();
     const need = Game.xpNecessario(p.nivel);
+
+    // grupo muscular com maior intensidade real
+    const mapa = Warrior.mapaPct(State.s);
+    const [gNome, gPct] = Object.entries(mapa).sort((a, b) => b[1] - a[1])[0] || ["—", 0];
 
     scr.innerHTML = `
       <div class="tavern-banner">
@@ -342,14 +354,29 @@ const UI = {
 
       ${this._htmlRecuperacao()}
 
-      <div class="parchment character-summary">
-        <div class="cs-name">${escapar(p.nome)}</div>
-        <div class="cs-row"><span>Nível</span><span class="cs-val">${p.nivel}</span></div>
-        <div class="cs-row"><span>Ouro</span><span class="cs-val">🪙 ${fmtNum(p.ouro)}</span></div>
-        <div class="cs-row"><span>Streak</span><span class="cs-val">🔥 ${st.atual} dias</span></div>
-        <div class="cs-row"><span>Treinos</span><span class="cs-val">⚒ ${stats.numTreinos}</span></div>
-        <div class="cs-row"><span>Recordes quebrados</span><span class="cs-val">💥 ${stats.recordes}</span></div>
-        <div class="xpbar big"><div class="xpbar-fill" style="width:${Math.min(100, p.xp/need*100)}%"></div><span class="xpbar-text">NV ${p.nivel} · ${p.xp}/${need} XP</span></div>
+      <div class="panel ficha">
+        <div class="ficha-top">
+          <div class="ficha-warrior">${Warrior.svg(State.s)}</div>
+          <div class="ficha-id">
+            <div class="char-name">${escapar(p.nome)}</div>
+            <div class="char-class">${this.tituloPorNivel(p.nivel)} · Nível ${p.nivel}</div>
+            <div class="xpbar" style="margin-top:.5rem;">
+              <div class="xpbar-fill" style="width:${Math.min(100, p.xp / need * 100)}%"></div>
+              <span class="xpbar-text">${fmtNum(p.xp)}/${fmtNum(need)} XP</span>
+            </div>
+            <div class="cs-row"><span>🪙 Ouro</span><span class="cs-val">${fmtNum(p.ouro)}</span></div>
+            <div class="cs-row"><span>🔥 Streak</span><span class="cs-val">${st.atual} dias</span></div>
+          </div>
+        </div>
+
+        <div class="ornament">✦ ✦ ✦</div>
+
+        <div class="kv-grid">
+          <div class="kv"><div class="k">Treinos</div><div class="v">⚒ ${g.numTreinos}</div></div>
+          <div class="kv"><div class="k">Recordes</div><div class="v">💥 ${g.recordes}</div></div>
+          <div class="kv"><div class="k">Volume total</div><div class="v">${fmtNum(g.volume)}<small style="font-size:.8rem"> kg</small></div></div>
+          <div class="kv"><div class="k">Mais treinado</div><div class="v" style="font-size:1rem;line-height:1.2;padding-top:.15rem;">${gPct > 0 ? `${gNome} · ${gPct}%` : "—"}</div></div>
+        </div>
       </div>
 
       <button class="btn btn-primary btn-big" data-action="start-workout">⚔ INICIAR TREINO</button>
@@ -1253,26 +1280,31 @@ const UI = {
     const vigor = Math.min(100, Math.round(Math.sqrt(g.volume / 500)));
     const disciplina = Math.min(100, Math.round(st.melhor * 3.3));
 
-    const titulo = p.nivel >= 40 ? "Lenda Viva"
-      : p.nivel >= 25 ? "Cavaleiro de Ferro"
-      : p.nivel >= 15 ? "Guerreiro"
-      : p.nivel >= 8 ? "Escudeiro"
-      : "Novato da Taverna";
-
     scr.innerHTML = `
       <div class="workout-head">
         <h1 class="workout-ex-name">👤 Ficha do Herói</h1>
         <button class="btn btn-ghost" data-action="back" style="width:auto;margin:.6rem auto;padding:.4rem 1.2rem;font-size:.8rem;">← Taverna</button>
       </div>
 
-      <div class="parchment char-sheet">
-        <div class="char-avatar">🛡</div>
-        <div class="char-name">${escapar(p.nome)}</div>
-        <div class="char-class">${titulo} · Nível ${p.nivel}</div>
-        <div class="xpbar big" style="border-color:#7a5c2e;margin-top:.6rem;">
-          <div class="xpbar-fill" style="width:${Math.min(100,p.xp/need*100)}%"></div>
-          <span class="xpbar-text">${p.xp}/${need} XP</span>
+      <div class="panel ficha char-big">
+        <div class="ficha-top">
+          <div class="ficha-warrior big">${Warrior.svg(State.s)}</div>
+          <div class="ficha-id">
+            <div class="char-name">${escapar(p.nome)}</div>
+            <div class="char-class">${this.tituloPorNivel(p.nivel)}</div>
+            <div class="cs-row"><span>Nível</span><span class="cs-val">${p.nivel}</span></div>
+            <div class="xpbar" style="margin-top:.3rem;">
+              <div class="xpbar-fill" style="width:${Math.min(100, p.xp / need * 100)}%"></div>
+              <span class="xpbar-text">${fmtNum(p.xp)}/${fmtNum(need)} XP</span>
+            </div>
+            <p class="m-sub" style="color:var(--text-dim);font-size:.78rem;margin-top:.6rem;line-height:1.45;">
+              Seu guerreiro reflete seu treino: cada grupo muscular desenvolvido
+              no mundo real o torna mais forte aqui.
+            </p>
+          </div>
         </div>
+
+        <div class="ornament">✦ ✦ ✦</div>
 
         <div class="stat-block">
           <div class="stat-box">
@@ -1291,7 +1323,13 @@ const UI = {
             <div class="stat-bar"><div style="width:${disciplina}%"></div></div>
           </div>
         </div>
-        <button class="btn" data-action="rename-character" style="margin-top:.8rem;width:auto;padding:.45rem 1.2rem;font-size:.78rem;margin-left:auto;margin-right:auto;">✒ Renomear Herói</button>
+
+        <button class="btn" data-action="rename-character" style="margin:.9rem auto .2rem;width:auto;padding:.45rem 1.2rem;font-size:.75rem;">✒ Renomear Herói</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Mapa de Músculos</div>
+        ${Warrior.mapaHTML(State.s)}
       </div>
 
       <div class="panel">
