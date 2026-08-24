@@ -336,11 +336,11 @@ button {
 .ex-item:hover { border-color: var(--gold); }
 .ex-item:active { transform: scale(.99); }
 .ex-info { flex: 1; min-width: 0; }
+/* nomes de músculos quebram linha em vez de serem cortados */
 .ex-muscles {
   font-family: var(--font-pixel);
   font-size: .85rem;
   color: var(--text-dim);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .ex-stats { text-align: right; font-family: var(--font-pixel); font-size: .9rem; color: var(--gold); white-space: nowrap; }
 .ex-actions { display:flex; flex-direction:column; gap:.3rem; }
@@ -353,21 +353,6 @@ button {
 }
 .icon-btn:hover { color: var(--gold-bright); border-color: var(--gold); }
 .icon-btn.danger:hover { color: #ff9a80; border-color: #8a3a2a; }
-
-.fab {
-  position: fixed;
-  bottom: 1.2rem;
-  right: 1.2rem;
-  z-index: 40;
-  width: 58px; height: 58px;
-  border-radius: 50%;
-  font-size: 1.7rem;
-  background: radial-gradient(circle at 35% 30%, #8a5f1c, #5e3d0e);
-  border: 2px solid var(--gold);
-  color: #fff3d6;
-  box-shadow: 0 4px 16px var(--shadow);
-}
-.fab:active { transform: scale(.94); }
 
 /* ================= TREINO / SESSÃO ================= */
 .sessao-nome {
@@ -422,6 +407,11 @@ button {
 .finish-btn { margin-top:.8rem; }
 .add-free-btn { margin-bottom:.8rem; }
 
+/* bloco Último/Melhor desempenho — separado dos controles */
+.desempenho .panel-title { margin-bottom:.6rem; }
+.desempenho-grid { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; }
+.desempenho .dv { display:inline-block; word-break:break-word; line-height:1.3; }
+
 /* ================= ESCOLHA DO TREINO / ROTINAS ================= */
 .rot-list { display:flex; flex-direction:column; gap:.5rem; }
 .rot-card {
@@ -437,7 +427,7 @@ button {
 .rot-card:active { transform:translateY(2px); box-shadow:0 1px 0 #000; }
 .rot-nome { font-family:var(--font-title); font-weight:700; color:var(--gold-bright); font-size:.98rem; }
 .rot-info { font-family:var(--font-pixel); font-size:.9rem; color:var(--bronze); margin:.1rem 0; }
-.rot-exs { font-size:.82rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rot-exs { font-size:.82rem; color:var(--text-dim); line-height:1.4; }
 .free-btn { margin-top:.4rem; }
 
 .rot-item { padding:.7rem .8rem; }
@@ -528,6 +518,7 @@ button {
 }
 .field input {
   width: 100%;
+  min-width: 0;
   padding: .85rem .6rem;
   background: #0d0803;
   border: 2px solid var(--border);
@@ -769,4 +760,22 @@ button {
 }
 @media (min-width: 700px) {
   body { font-size: 17px; }
+}
+
+/* ---- proteções estruturais contra sobreposição/corte ---- */
+button { max-width: 100%; }
+
+/* celulares estreitos */
+@media (max-width: 380px) {
+  .desempenho-grid { grid-template-columns: 1fr; }
+  .field input { font-size: 1.3rem; padding: .7rem .4rem; }
+  .times-sep { font-size: 1.2rem; padding-bottom: .6rem; }
+  .stat-value { font-size: 1.3rem; }
+  #hud { padding: .5rem .6rem; gap: .35rem; }
+}
+
+/* telas muito estreitas: empilha peso × reps sem comprimir */
+@media (max-width: 330px) {
+  .inputs-grid { grid-template-columns: 1fr; gap: .55rem; }
+  .times-sep { display: none; }
 }

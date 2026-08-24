@@ -170,8 +170,7 @@ const State = {
     return { ultimo: ts[0] || null, maiorPeso, maiorReps, melhorSerie, volumeTotal, numTreinos: ts.length };
   },
 
-  /* ---------- Save/Load externo ---------- */
-  exportar() {
+  /* ---------- Save/Load externo ---------- */  exportar() {
     const blob = new Blob([JSON.stringify(this.s, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -196,7 +195,10 @@ const State = {
     }
   },
 
+  /* Zera tudo: remove o save do localStorage e recria o estado inicial.
+     A biblioteca padrão de exercícios não é afetada (vive em data.js).  */
   resetarTudo() {
+    localStorage.removeItem(SAVE_KEY);
     this.s = this.novo();
     this.save();
   }

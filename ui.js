@@ -272,9 +272,13 @@ const UI = {
       this.render_exercises(document.getElementById("screen-exercises"));
     },
     "do-reset": function () {
+      this._descartarSessao();
+      this._rotEdit = null;
+      this._busca = "";
       State.resetarTudo();
       this.fecharModal();
-      this.toast("🔄 Jogo reiniciado.");
+      this.toast("🔄 Dados zerados. Uma nova jornada começa!");
+      // reinicializa a interface no estado inicial (biblioteca padrão intacta)
       this.showScreen("tavern");
     },
     "next-celebration": function () {
@@ -706,6 +710,29 @@ const UI = {
     ).join("");
   },
 
+  /* bloco "Último / Melhor desempenho", separado dos controles */
+  _htmlDesempenho(exId) {
+    const st = State.statsExercicio(exId);
+    const ultimo = st.ultimo ? st.ultimo.series.map(x => `${x.peso} kg × ${x.reps}`).join(",  ")
+      : null;
+    const melhor = st.melhorSerie ? `${st.melhorSerie.valor} kg × ${st.melhorSerie.reps}` : null;
+    if (!ultimo && !melhor) return "";
+    return `
+      <div class="panel desempenho">
+        <div class="panel-title">Desempenho</div>
+        <div class="desempenho-grid">
+          <div class="kv">
+            <div class="k">Último desempenho</div>
+            <div class="v">${ultimo ? `<span class="dv">${escapar(ultimo)}</span>` : "—"}</div>
+          </div>
+          <div class="kv">
+            <div class="k">Melhor desempenho</div>
+            <div class="v">🏆 ${melhor ? `<span class="dv">${melhor}</span>` : "—"}</div>
+          </div>
+        </div>
+      </div>`;
+  },
+
   _inputsRegistro(prefill, extraHtml = "") {
     return `
       <div class="inputs-grid">
@@ -751,10 +778,6 @@ const UI = {
       : `${item.series.length} ${item.series.length === 1 ? "série registrada" : "séries registradas"}`;
 
     const prefill = this.prefillPara(item);
-    const histTxt = (() => {
-      const h = State.treinosDoExercicio(item.exId)[0];
-      return h ? h.series.map(x => `${x.peso}×${x.reps}`).join("  ") : null;
-    })();
 
     // aviso de conclusão do exercício atual
     let proximoHtml = "";
@@ -798,9 +821,9 @@ const UI = {
         <div class="panel-title">Registrar Série</div>
         ${this._inputsRegistro(prefill)}
         <div class="quick-chips" id="quick-chips"></div>
-        ${histTxt ? `<p class="last-session" style="margin-top:.7rem;text-align:center;">Última sessão: <b>${histTxt}</b></p>`
-                  : `<p class="last-session" style="margin-top:.7rem;text-align:center;"><i>Primeira vez neste exercício!</i></p>`}
       </div>
+
+      ${this._htmlDesempenho(item.exId)}
 
       <div class="panel">
         <div class="panel-title">Séries Registradas</div>
@@ -827,10 +850,6 @@ const UI = {
       const ex = State.exercicioPorId(item.exId);
       if (!ex) return "";
       const ativo = i === s.idx;
-      const histTxt = (() => {
-        const h = State.treinosDoExercicio(item.exId)[0];
-        return h ? h.series.map(x => `${x.peso}×${x.reps}`).join("  ") : null;
-      })();
 
       const corpo = ativo
         ? `<div class="sets-table">
@@ -838,9 +857,9 @@ const UI = {
                                   : `<p class="empty-msg" style="padding:.5rem">Nenhuma série ainda.</p>`}
            </div>
            ${this._inputsRegistro(this.prefillPara(item))}
-           ${histTxt ? `<p class="last-session" style="margin-top:.6rem;text-align:center;">Última sessão: <b>${histTxt}</b></p>` : ""}`
-        : `<p class="bloco-resumo">${item.series.length} ${item.series.length === 1 ? "série registrada" : "séries registradas"}
-             ${histTxt ? ` · <small>última sessão: ${histTxt}</small>` : ""}</p>
+           <div class="quick-chips" id="quick-chips"></div>
+           ${this._htmlDesempenho(item.exId)}`
+        : `<p class="bloco-resumo">${item.series.length} ${item.series.length === 1 ? "série registrada" : "séries registradas"}</p>
            <button class="btn" data-action="sess-active" data-arg="${i}">＋ SÉRIE</button>`;
 
       return `
@@ -1241,9 +1260,10 @@ const UI = {
       <div class="panel danger-zone">
         <div class="panel-title">Zona Perigosa ☠</div>
         <p class="m-sub" style="color:var(--text-dim);font-size:.85rem;margin-bottom:.8rem;">
-          Apagar todos os dados e começar uma nova jornada. Esta ação é irreversível.
+          Apaga personagem, XP, ouro, streak, treinos, rotinas, recordes e conquistas.
+          Os exercícios padrão da biblioteca são recriados automaticamente.
         </p>
-        <button class="btn btn-danger" data-action="reset-all">🔥 REINICIAR AVENTURA</button>
+        <button class="btn btn-danger" data-action="reset-all">🗑 ZERAR TODOS OS DADOS</button>
       </div>
     `;
   },
@@ -1277,13 +1297,13 @@ const UI = {
 
   confirmarReset() {
     this.modal(`
-      <div class="m-icon">💀</div>
-      <h2>APAGAR TUDO?</h2>
-      <p>Sua jornada inteira será perdida:<br>
-      nível, ouro, recordes, treinos e conquistas.</p>
+      <div class="m-icon">⚠</div>
+      <h2>ZERAR TODOS OS DADOS?</h2>
+      <p>Esta ação apagará todo o seu progresso, histórico, recordes, treinos personalizados e configurações.</p>
+      <p class="m-sub" style="margin-top:.4rem;">Essa ação não pode ser desfeita.</p>
       <div class="m-buttons">
-        <button class="btn btn-ghost" data-action="close-modal">MANTER MEU SAVE</button>
-        <button class="btn btn-danger" data-action="do-reset">APAGAR E RECOMEÇAR</button>
+        <button class="btn btn-ghost" data-action="close-modal">CANCELAR</button>
+        <button class="btn btn-danger" data-action="do-reset">ZERAR DADOS</button>
       </div>
     `);
   }
