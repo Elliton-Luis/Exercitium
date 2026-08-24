@@ -676,6 +676,7 @@ const UI = {
     const s = this.sessao;
     if (!s) { this.showScreen("tavern"); return; }
     scr.innerHTML = s.tipo === "livre" ? this._htmlSessaoLivre() : this._htmlSessaoGuiada();
+    this._renderChips(s.items[s.idx]);
 
     // Enter registra série
     const peso = document.getElementById("inp-peso");
@@ -686,6 +687,23 @@ const UI = {
       }));
       reps.focus({ preventScroll: true });
     }
+  },
+
+  /* sugestões rápidas baseadas na última performance */
+  _renderChips(item) {
+    const cont = document.getElementById("quick-chips");
+    if (!cont || !item) return;
+    const pf = this.prefillPara(item);
+    if (pf.peso === "") { cont.innerHTML = ""; return; }
+    const combos = [
+      [pf.peso, pf.reps],
+      [pf.peso, pf.reps + 2],
+      [pf.peso + 2.5, pf.reps],
+      [pf.peso + 5, Math.max(1, pf.reps - 2)]
+    ];
+    cont.innerHTML = combos.map(([p, r]) =>
+      `<button class="chip" data-action="chip-fill" data-peso="${p}" data-reps="${r}">${p}×${r}</button>`
+    ).join("");
   },
 
   _inputsRegistro(prefill, extraHtml = "") {
