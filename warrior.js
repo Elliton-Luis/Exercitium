@@ -298,6 +298,13 @@ const Warrior = (() => {
 
     const uid = "wg" + Math.random().toString(36).slice(2, 7);
 
+    // aura discreta que cresce com o nível muscular geral
+    const rk = rankGuerreiro(s);
+    const aura = rk.lvl > 0
+      ? `<ellipse cx="${cx}" cy="88" rx="${42 + rk.lvl * 2.5}" ry="${68 + rk.lvl * 2}"
+           fill="rgba(184,146,58,${(.05 + .03 * rk.lvl).toFixed(2)})"/>`
+      : "";
+
     // camada: capa (atrás de tudo; ausente se "Sem Capa")
     let capa = "";
     if (idCapa !== "capa_nenhuma" && stCapa) {
@@ -333,7 +340,21 @@ const Warrior = (() => {
             opacity="${(.15 + f.core * .55).toFixed(2)}"/>
       <rect x="${cx - waist - 3}" y="85" width="${(waist + 3) * 2}" height="7"
             fill="#4a2f18" stroke="#241708"/>
-      <rect x="${cx - 3.5}" y="85.5" width="7" height="6" fill="#c9a13b" stroke="#241708"/>`;
+      <rect x="${cx - 3.5}" y="85.5" width="7" height="6" fill="#c9a13b" stroke="#241708"/>
+      ${stCorpo.detalhe ? `
+      <path d="M ${cx - sh * .75},42.5 Q ${cx},46.5 ${cx + sh * .75},42.5"
+            fill="none" stroke="${stCorpo.detalhe}" stroke-width="1.4"/>
+      <rect x="${cx - 2.4}" y="66" width="4.8" height="4.8"
+            transform="rotate(45 ${cx} 68.4)" fill="${stCorpo.detalhe}" stroke="#171009" stroke-width=".6"/>` : ""}
+      ${(function(){
+          const stAcc = estiloDe(equipado(s, "acessorio"));
+          if (!stAcc) return "";
+          if (equipado(s, "acessorio") === "amuleto_ouro")
+            return `<path d="M ${cx - 7},49 Q ${cx},56 ${cx + 7},49" fill="none" stroke="${stAcc.cordao}" stroke-width="1"/>
+                    <circle cx="${cx}" cy="57.5" r="2.6" fill="${stAcc.cordao}" stroke="#241708"/>
+                    <circle cx="${cx}" cy="57.5" r="1" fill="${stAcc.pedra}"/>`;
+          return `<path d="M ${cx - 6},48 Q ${cx},53 ${cx + 6},48" fill="none" stroke="${stAcc.cordao}" stroke-width="1.2"/>`;
+        })()}`;
 
     // camada: braços + bracers + mãos
     let bracos = "";
@@ -351,21 +372,36 @@ const Warrior = (() => {
         <circle cx="${px}" cy="46" r="${pdR * .45}" fill="none" stroke="${stCorpo.escuro}" opacity=".6"/>`;
     }
 
-    // camada: cabeça + capacete
-    const cabeca = `
+    // camada: cabeça + capacete/coroa
+    let cabeca = `
       <rect x="${cx - 3}" y="31" width="6" height="7" fill="#b98d63" stroke="#171009"/>
-      <circle cx="${cx}" cy="25" r="8.5" fill="#c79b6f" stroke="#171009"/>
-      <path d="M ${cx - 10},25 A 10 10 0 0 1 ${cx + 10},25 L ${cx + 10},29
-               L ${cx - 10},29 Z" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width="1.2"/>
-      <rect x="${cx - 1}" y="26" width="2" height="7" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width=".6"/>
-      <path d="M ${cx - 10},25 L ${cx},17 L ${cx + 10},25" fill="none"
-            stroke="${stCab.escuro}" stroke-width="1.4"/>`;
+      <circle cx="${cx}" cy="25" r="8.5" fill="#c79b6f" stroke="#171009"/>`;
+    if (idCab === "coroa_conquista") {
+      cabeca += `
+        <path d="M ${cx - 9},24 L ${cx - 9},15 L ${cx - 4.5},18.5 L ${cx},13
+                 L ${cx + 4.5},18.5 L ${cx + 9},15 L ${cx + 9},24 Z"
+              fill="${stCab.ouro}" stroke="${stCab.escuro}" stroke-width="1"/>
+        <circle cx="${cx}" cy="20.5" r="1.4" fill="#c0392b" stroke="${stCab.escuro}" stroke-width=".5"/>`;
+    } else {
+      cabeca += `
+        <path d="M ${cx - 10},25 A 10 10 0 0 1 ${cx + 10},25 L ${cx + 10},29
+                 L ${cx - 10},29 Z" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width="1.2"/>
+        <rect x="${cx - 1}" y="26" width="2" height="7" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width=".6"/>
+        <path d="M ${cx - 10},25 L ${cx},17 L ${cx + 10},25" fill="none"
+              stroke="${stCab.escuro}" stroke-width="1.4"/>`;
+      if (idCab === "elmo_pluma") {
+        cabeca += `
+          <path d="M ${cx},16 Q ${cx + 7},8 ${cx + 3},2" fill="none"
+                stroke="${stCab.pluma}" stroke-width="3.4" stroke-linecap="round"/>`;
+      }
+    }
 
     // camada: espada (mão direita)
     const sx = cx + sh + armW + 9;
     const espada = `
       <g transform="rotate(6 ${sx} 60)">
         <rect x="${sx - 1.6}" y="28" width="3.2" height="49" fill="${stArma.lamina}" stroke="#4a4e55" stroke-width=".7"/>
+        ${stArma.brilho ? `<line x1="${sx - .4}" y1="32" x2="${sx - .4}" y2="74" stroke="#ffffff" stroke-width=".8" opacity=".65"/>` : ""}
         <path d="M ${sx - 1.6},28 L ${sx},21 L ${sx + 1.6},28 Z" fill="${stArma.lamina}" stroke="#4a4e55" stroke-width=".7"/>
         <rect x="${sx - 7}" y="77" width="14" height="3.6" rx="1" fill="${stArma.guarda}" stroke="#241708"/>
         <rect x="${sx - 2}" y="80.6" width="4" height="9" rx="1.5" fill="${stArma.punho}" stroke="#171009"/>
@@ -381,6 +417,7 @@ const Warrior = (() => {
           <stop offset="1" stop-color="${stCorpo.medio}"/>
         </linearGradient>
       </defs>
+      ${aura}
       ${capa}
       ${pernas}
       ${torso}
