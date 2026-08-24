@@ -157,6 +157,19 @@ const UI = {
     "goto-history":     function () { this.showScreen("history"); },
     "goto-saves":       function () { this.showScreen("saves"); },
     "goto-stats":       function () { this.showScreen("stats"); },
+    "goto-forja":       function () { this.showScreen("forja"); },
+    "buy-item":         function (id) { this.comprarItem(id); },
+    "equip-item":       function (id) {
+      const item = Warrior.porId(id);
+      if (!item) return;
+      State.equiparCosmetico(item.slot, id);
+      this.toast(`⚔ ${escapar(item.nome)} equipado!`);
+      this.render_forja(document.getElementById("screen-forja"));
+    },
+    "unequip-item":     function (slot) {
+      State.equiparCosmetico(slot, Warrior.SLOTS[slot].padrao);
+      this.render_forja(document.getElementById("screen-forja"));
+    },
     "back":             function () { this.showScreen("tavern"); },
 
     "select-evolution": function (id) { this.detalheExercicio(id); },
@@ -371,6 +384,7 @@ const UI = {
         <button class="menu-item" data-action="goto-achievements"><span class="mi-icon">🎖</span><span>Conquistas</span></button>
         <button class="menu-item" data-action="goto-history"><span class="mi-icon">📖</span><span>Histórico</span></button>
         <button class="menu-item" data-action="goto-stats"><span class="mi-icon">📈</span><span>Evolução</span></button>
+        <button class="menu-item" data-action="goto-forja"><span class="mi-icon">🏪</span><span>Forja</span></button>
         <button class="menu-item" data-action="goto-saves"><span class="mi-icon">💾</span><span>Saves</span></button>
       </nav>
     `;
@@ -1259,6 +1273,74 @@ const UI = {
   },
 
   /* ================= PERSONAGEM ================= */
+  /* ================= FORJA (loja de cosméticos) ================= */
+  comprarItem(id) {
+    const item = Warrior.porId(id);
+    if (!item) return;
+    const st = Warrior.statusItem(State.s, item);
+    if (st.acao !== "comprar") return;
+    if (State.comprarCosmetico(id, item.origem.preco)) {
+      this.toast(`🛒 ${escapar(item.nome)} adquirido!`);
+      this.updateHUD();
+      this.render_forja(document.getElementById("screen-forja"));
+    } else {
+      this.toast("🪙 Ouro insuficiente.");
+    }
+  },
+
+  _forjaRow(s, item) {
+    const st = Warrior.statusItem(s, item);
+    const icone = Warrior.SLOTS[item.slot].icone;
+
+    let botao = "";
+    if (st.acao === "equipar")
+      botao = `<button class="btn" data-action="equip-item" data-arg="${item.id}" style="width:auto;padding:.45rem .9rem;font-size:.72rem;">EQUIPAR</button>`;
+    else if (st.acao === "comprar")
+      botao = `<button class="btn btn-primary" data-action="buy-item" data-arg="${item.id}" style="width:auto;padding:.45rem .9rem;font-size:.72rem;">COMPRAR</button>`;
+    else
+      botao = `<span class="si-estado${st.acao === "equipado" ? " on" : ""}">${st.acao === "equipado" ? "✔ EQUIPADO" : st.motivo}</span>`;
+
+    return `
+      <div class="shop-item">
+        <span class="si-icon">${icone}</span>
+        <div class="si-info">
+          <div class="si-nome">${escapar(item.nome)}</div>
+          <div class="si-motivo">${st.motivo}</div>
+        </div>
+        ${botao}
+      </div>`;
+  },
+
+  render_forja(scr) {
+    const s = State.s;
+    const seus = Warrior.COSMETICOS.filter(c => Warrior.possui(s, c.id));
+    const vitrine = Warrior.COSMETICOS.filter(c => !Warrior.possui(s, c.id));
+
+    scr.innerHTML = `
+      <div class="workout-head">
+        <h1 class="workout-ex-name">🏪 Forja</h1>
+        <p class="workout-sub">Cosméticos para o seu guerreiro</p>
+        <button class="btn btn-ghost" data-action="back" style="width:auto;margin:.6rem auto;padding:.4rem 1.2rem;font-size:.8rem;">← Taverna</button>
+      </div>
+
+      <div class="panel forja-saldo">
+        <div class="cs-row"><span>🪙 Seu ouro</span><span class="cs-val">${fmtNum(s.personagem.ouro)}</span></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Seus Itens</div>
+        ${seus.map(item => this._forjaRow(s, item)).join("")}
+      </div>
+
+      ${vitrine.length ? `
+      <div class="panel">
+        <div class="panel-title">Ainda Não Possui</div>
+        ${vitrine.map(item => this._forjaRow(s, item)).join("")}
+        <p class="mapa-legend">Ganhe ouro treinando e quebrando recordes; algumas relíquias são recompensas por feitos.</p>
+      </div>` : ""}
+    `;
+  },
+
   /* ================= EVOLUÇÃO (estatísticas) ================= */
 
   /* gráfico de colunas temático: [{label, valor, titulo}] */
@@ -1437,7 +1519,10 @@ const UI = {
           </div>
         </div>
 
-        <button class="btn" data-action="rename-character" style="margin:.9rem auto .2rem;width:auto;padding:.45rem 1.2rem;font-size:.75rem;">✒ Renomear Herói</button>
+        <div style="display:flex;gap:.5rem;justify-content:center;margin-top:.9rem;flex-wrap:wrap;">
+          <button class="btn" data-action="goto-forja" style="width:auto;padding:.45rem 1rem;font-size:.72rem;">🏪 FORJA</button>
+          <button class="btn" data-action="rename-character" style="width:auto;padding:.45rem 1rem;font-size:.72rem;">✒ Renomear</button>
+        </div>
       </div>
 
       <div class="panel">
