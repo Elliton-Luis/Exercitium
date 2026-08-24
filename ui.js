@@ -9,12 +9,21 @@ const UI = {
   sessao: null,     // sessão de treino em andamento
   _pickCtx: null,   // contexto de seleção de exercício ({modo:"rotina"|"livre"})
   _rotEdit: null,   // rascunho do editor de rotina
+  _finalizando: false,          // proteção contra finalização dupla
+  _cooldownMs: 10000,           // intervalo entre séries registradas
+  _cooldownAte: 0,              // timestamp em que o cooldown expira
+  _cooldownTimer: null,         // intervalo de atualização do contador
 
   init() {
     State.init();
     this.bindGlobal();
     this.showScreen("tavern");
     this.updateHUD();
+  },
+
+  /* persiste a sessão atual imediatamente ("save game") */
+  _persistirSessao() {
+    if (this.sessao) State.salvarSessao(this.sessao);
   },
 
   bindGlobal() {
@@ -139,7 +148,7 @@ const UI = {
 
   /* ================= AÇÕES GLOBAIS ================= */
   actions: {
-    "goto-tavern":      function () { this._descartarSessao(); this.showScreen("tavern"); },
+    "goto-tavern":      function () { this.showScreen("tavern"); }, // sessão em andamento permanece salva
     "start-workout":    function () { this.showScreen("workoutstart"); },
     "goto-exercises":   function () { this._modoTreino = false; this._pickCtx = null; this.showScreen("exercises"); },
     "goto-records":     function () { this.showScreen("records"); },
@@ -225,7 +234,10 @@ const UI = {
       const s = this.sessao;
       if (!s) return;
       const novo = +idx;
-      if (novo >= 0 && novo < s.items.length) s.idx = novo;
+      if (novo >= 0 && novo < s.items.length) {
+        s.idx = novo;
+        this._persistirSessao();
+      }
       this.render_workout(document.getElementById("screen-workout"));
     },
     "chip-fill":       function (arg, btn) {
@@ -233,12 +245,35 @@ const UI = {
       document.getElementById("inp-reps").value = btn.dataset.reps;
       document.getElementById("inp-peso").focus();
     },
-    "finish-session":  function () { this.finalizarSessao(); },
-    "discard-session": function () {
-      this._descartarSessao();
+    "finish-session":  function () { this.finalizarSessao(); }, // funciona mesmo durante o cooldown
+    "discard-session": function () { this.confirmarDescarte(); },
+    "confirm-discard-session": function () {
+      this._encerrarEstadoTreino();
+      this.fecharModal();
       this.toast("Treino descartado.");
       this.showScreen("tavern");
     },
+    /* ---- recuperação de sessão salva ---- */
+    "recover-session": function () {
+      const salva = State.carregarSessao();
+      if (!salva) return;
+      // normaliza campos essenciais para retomar exatamente de onde parou
+      this.sessao = {
+        tipo: salva.tipo,
+        rotinaId: salva.rotinaId,
+        nome: salva.nome || "Treino",
+        items: salva.items.map(i => ({
+          exId: i.exId,
+          planejadas: +i.planejadas || 0,
+          series: (i.series || []).map(x => ({ peso: +x.peso, reps: +x.reps }))
+        })),
+        idx: Math.min(+salva.idx || 0, salva.items.length - 1),
+        iniciadaEm: salva.iniciadaEm || Date.now()
+      };
+      State.salvarSessao(this.sessao); // continua in_progress
+      this.showScreen("workout");
+    },
+    "ask-discard-saved": function () { this.confirmarDescarte(); },
     "add-session-exercise": function () {
       this._pickCtx = { modo: "livre" };
       this.showScreen("exercises");
@@ -248,6 +283,7 @@ const UI = {
       if (!s || s.items.length <= 1) return;
       s.items.splice(+idx, 1);
       s.idx = Math.min(s.idx, s.items.length - 1);
+      this._persistirSessao();
       this.render_workout(document.getElementById("screen-workout"));
     },
     "back-to-session": function () {
@@ -272,7 +308,7 @@ const UI = {
       this.render_exercises(document.getElementById("screen-exercises"));
     },
     "do-reset": function () {
-      this._descartarSessao();
+      this._encerrarEstadoTreino();
       this._rotEdit = null;
       this._busca = "";
       State.resetarTudo();
@@ -282,6 +318,10 @@ const UI = {
       this.showScreen("tavern");
     },
     "next-celebration": function () {
+      this.fecharModal();
+      this.proximaCelebracao();
+    },
+    "finish-continue": function () {
       this.fecharModal();
       this.proximaCelebracao();
     }
@@ -299,6 +339,8 @@ const UI = {
         <h1 class="game-title">EXERCITIUM</h1>
         <p class="game-subtitle">⚔ Crônicas do Ferro ⚔</p>
       </div>
+
+      ${this._htmlRecuperacao()}
 
       <div class="parchment character-summary">
         <div class="cs-name">${escapar(p.nome)}</div>
@@ -479,6 +521,38 @@ const UI = {
     `);
   },
 
+  confirmarDescarte() {
+    this.modal(`
+      <div class="m-icon">⚠</div>
+      <h2>DESCARTAR TREINO?</h2>
+      <p>Todo o progresso deste treino será perdido.</p>
+      <p class="m-sub" style="margin-top:.4rem;">Essa ação não pode ser desfeita.</p>
+      <div class="m-buttons">
+        <button class="btn btn-ghost" data-action="close-modal">CANCELAR</button>
+        <button class="btn btn-danger" data-action="confirm-discard-session">DESCARTAR</button>
+      </div>
+    `);
+  },
+
+  /* banner de treino em andamento, exibido na taverna */
+  _htmlRecuperacao() {
+    const salva = State.carregarSessao();
+    if (!salva) return "";
+    const numSeries = salva.items.reduce((n, i) => n + (i.series ? i.series.length : 0), 0);
+    const data = salva.salvoEm ? new Date(salva.salvoEm).toLocaleString("pt-BR") : null;
+    return `
+      <div class="panel recovery">
+        <div class="panel-title">⚔ Treino em Andamento</div>
+        <p style="margin-bottom:.5rem;">Você possui um treino que ainda não foi finalizado.</p>
+        <div class="cs-row"><span>${escapar(salva.nome || "Treino")}</span><span class="cs-val" style="color:var(--gold-bright);font-family:var(--font-pixel)">⚔ ${numSeries} série${numSeries === 1 ? "" : "s"}</span></div>
+        ${data ? `<p class="m-sub" style="color:var(--text-dim);font-size:.8rem;">Salvo em ${data}</p>` : ""}
+        <div style="display:flex;flex-direction:column;gap:.45rem;margin-top:.7rem;">
+          <button class="btn btn-primary" data-action="recover-session">▶ CONTINUAR TREINO</button>
+          <button class="btn btn-danger" data-action="ask-discard-saved">🗑 DESCARTAR TREINO</button>
+        </div>
+      </div>`;
+  },
+
   /* ================= ESCOLHA DO TREINO ================= */
   render_workoutstart(scr) {
     const rotinas = State.s.rotinas;
@@ -624,12 +698,14 @@ const UI = {
     const ex = State.exercicioPorId(exId);
     if (!ex) return;
     this._modoTreino = false;
-    this.sessao = { tipo: "unica", nome: ex.nome, items: [{ exId, planejadas: 0, series: [] }], idx: 0 };
+    this.sessao = { tipo: "unica", nome: ex.nome, items: [{ exId, planejadas: 0, series: [] }], idx: 0, iniciadaEm: Date.now() };
+    this._persistirSessao();
     this.showScreen("workout");
   },
 
   iniciarSessaoLivre() {
-    this.sessao = { tipo: "livre", nome: "Treino Livre", items: [], idx: -1 };
+    this.sessao = { tipo: "livre", nome: "Treino Livre", items: [], idx: -1, iniciadaEm: Date.now() };
+    this._persistirSessao();
     this.showScreen("workout");
   },
 
@@ -641,14 +717,19 @@ const UI = {
       rotinaId: rid,
       nome: r.nome,
       items: r.itens.map(i => ({ exId: i.exercicioId, planejadas: i.series, series: [] })),
-      idx: 0
+      idx: 0,
+      iniciadaEm: Date.now()
     };
+    this._persistirSessao();
     this.showScreen("workout");
   },
 
-  _descartarSessao() {
+  _encerrarEstadoTreino() {
     this.sessao = null;
     this._pickCtx = null;
+    this._pararCooldownTimer();
+    this._cooldownAte = 0;
+    State.apagarSessao(); // remove o "save game" da sessão ativa
   },
 
   addSessaoItem(exId) {
@@ -657,6 +738,7 @@ const UI = {
     s.items.push({ exId, planejadas: 0, series: [] });
     s.idx = s.items.length - 1;
     this._pickCtx = null;
+    this._persistirSessao();
     this.showScreen("workout");
   },
 
@@ -664,6 +746,7 @@ const UI = {
     const s = this.sessao;
     if (!s || !s.items[idx]) return;
     s.idx = idx;
+    this._persistirSessao();
     this.render_workout(document.getElementById("screen-workout"));
   },
 
@@ -681,6 +764,8 @@ const UI = {
     if (!s) { this.showScreen("tavern"); return; }
     scr.innerHTML = s.tipo === "livre" ? this._htmlSessaoLivre() : this._htmlSessaoGuiada();
     this._renderChips(s.items[s.idx]);
+    // reaplica o bloqueio de cooldown no DOM recém-criado (sobrevive ao avanço automático)
+    this._atualizarCooldownUI();
 
     // Enter registra série
     const peso = document.getElementById("inp-peso");
@@ -747,7 +832,12 @@ const UI = {
         </div>
       </div>
       ${extraHtml}
-      <button class="btn btn-primary" data-action="add-set">＋ REGISTRAR SÉRIE</button>`;
+      <div id="cooldown-box" class="cooldown-box hidden">
+        <div class="cd-title">✓ SÉRIE REGISTRADA</div>
+        <div class="cd-sub">Próxima série disponível em <b id="cd-secs">10</b> segundos</div>
+        <button class="btn cd-btn" disabled>🔒 AGUARDE</button>
+      </div>
+      <button class="btn btn-primary" id="btn-add-set" data-action="add-set">＋ REGISTRAR SÉRIE</button>`;
   },
 
   _linhaSet(itemIdx, se, i) {
@@ -901,11 +991,15 @@ const UI = {
     const s = this.sessao;
     const item = s && s.items[s.idx];
     if (!item) return;
+    // proteção LÓGICA contra duplicação: bloqueado também via teclado/eventos
+    if (this._emCooldown()) return;
+
     const pesoEl = document.getElementById("inp-peso");
     const repsEl = document.getElementById("inp-reps");
     if (!pesoEl || !repsEl) return;
     const peso = parseFloat(pesoEl.value);
     const reps = parseInt(repsEl.value, 10);
+    // validação falhou: NÃO inicia cooldown, usuário pode corrigir já
     if (isNaN(peso) || peso <= 0 || isNaN(reps) || reps <= 0) {
       this.toast("⚠ Informe peso e repetições válidos.");
       return;
@@ -914,6 +1008,12 @@ const UI = {
     item.series.push({ peso, reps });
     this.floatXP("+10 XP");
     this.ganharXPSilencioso(10, 2);
+
+    // salva imediatamente: mesmo que o navegador feche agora, a série está salva
+    this._persistirSessao();
+
+    // cooldown só começa depois do registro bem-sucedido
+    this._iniciarCooldown();
 
     // rotina guiada: ao completar as séries planejadas, avança automaticamente
     let concluiu = false;
@@ -925,6 +1025,7 @@ const UI = {
         this.toast(`✔ Exercício concluído! Próximo: <b>${escapar(prox.nome)}</b>`);
       }
     }
+    this._persistirSessao(); // persiste avanço de índice
 
     this.render_workout(document.getElementById("screen-workout"));
     document.getElementById("sets-table")
@@ -941,93 +1042,138 @@ const UI = {
     const item = s && s.items[itemIdx];
     if (!item) return;
     item.series.splice(setIdx, 1);
+    this._persistirSessao();
     this.render_workout(document.getElementById("screen-workout"));
+  },
+
+  /* ---------- Cooldown de registro (10s) ---------- */
+  _emCooldown() {
+    return Date.now() < this._cooldownAte;
+  },
+
+  _iniciarCooldown() {
+    this._cooldownAte = Date.now() + this._cooldownMs;
+    this._pararCooldownTimer();
+    this._cooldownTimer = setInterval(() => this._atualizarCooldownUI(), 250);
+    this._atualizarCooldownUI();
+  },
+
+  _pararCooldownTimer() {
+    if (this._cooldownTimer) {
+      clearInterval(this._cooldownTimer);
+      this._cooldownTimer = null;
+    }
+  },
+
+  /* aplica o estado atual do cooldown na interface (botão + caixa de aviso).
+     Chamado pelo timer e após cada re-render, para o bloqueio sobreviver
+     à navegação entre exercícios da sessão.                          */
+  _atualizarCooldownUI() {
+    const btn = document.querySelector("#btn-add-set");
+    const box = document.getElementById("cooldown-box");
+    if (!btn || !box) return;
+    const restanteMs = this._cooldownAte - Date.now();
+    if (restanteMs <= 0) {
+      box.classList.add("hidden");
+      btn.disabled = false;
+      btn.innerHTML = "＋ REGISTRAR SÉRIE";
+      this._pararCooldownTimer();
+      return;
+    }
+    const segs = Math.ceil(restanteMs / 1000);
+    box.classList.remove("hidden");
+    const secsEl = document.getElementById("cd-secs");
+    if (secsEl) secsEl.textContent = segs;
+    btn.disabled = true;
+    btn.innerHTML = `🔒 AGUARDE ${segs}s`;
   },
 
   finalizarSessao() {
     const s = this.sessao;
-    if (!s) return;
-    const comSeries = s.items.filter(i => i.series.length > 0);
+    if (!s || this._finalizando) return; // idempotente: cliques duplos não duplicam nada
+    this._finalizando = true;
 
-    if (!comSeries.length) {
-      this._descartarSessao();
-      this.toast("Treino descartado (nenhuma série registrada).");
+    try {
+      const comSeries = s.items.filter(i => i.series.length > 0);
+
+      if (!comSeries.length) {
+        this._encerrarEstadoTreino();
+        this.toast("Treino descartado (nenhuma série registrada).");
+        this.showScreen("tavern");
+        return;
+      }
+
+      const eventos = [];
+      const totalSeriesSessao = comSeries.reduce((n, i) => n + i.series.length, 0);
+      const volTotal = comSeries.reduce((v, i) =>
+        v + i.series.reduce((x, se) => x + se.peso * se.reps, 0), 0);
+      let xpRecordes = 0, ouroRecordes = 0;
+
+      // por exercício: recordes -> salvar treino no histórico
+      for (const item of comSeries) {
+        const ex = State.exercicioPorId(item.exId);
+        const quebras = Game.checarRecordes(item.exId, item.series);
+        for (const q of quebras) {
+          this.ganharXPSilencioso(50, 10);
+          xpRecordes += 50;
+          ouroRecordes += 10;
+          eventos.push({ ...q, tipo: "record", exNome: ex.nome, xp: 50 });
+        }
+        State.addTreino(item.exId, item.series);
+      }
+
+      // encerra o estado temporário IMEDIATAMENTE após salvar:
+      // a partir daqui não existe mais sessão ativa
+      this._encerrarEstadoTreino();
+
+      // streak
+      const streakNovo = Game.atualizarStreak();
+      if (streakNovo && State.s.streak.atual > 1) {
+        this.toast(`🔥 ${State.s.streak.atual} dias consecutivos!`);
+      }
+
+      // XP e ouro de conclusão do treino
+      const xpTreino = 25 + totalSeriesSessao * 5;
+      const ouroTreino = 5 + totalSeriesSessao;
+      this.ganharXPSilencioso(xpTreino, ouroTreino);
+
+      // conquistas
+      const novasConq = Game.checarConquistas();
+      for (const c of novasConq) {
+        this.ganharXPSilencioso(c.xp, c.ouro);
+        eventos.push({ tipo: "conquista", icone: c.icone, nome: c.nome, desc: c.desc, xp: c.xp, ouro: c.ouro });
+      }
+      const xpConq = novasConq.reduce((n, c) => n + c.xp, 0);
+      const ouroConq = novasConq.reduce((n, c) => n + c.ouro, 0);
+
+      // fila de celebrações: records -> levelups -> conquistas
+      const pendentes = (this._levelupsPendentes || []);
+      this._levelupsPendentes = [];
+      this.filaCelebracoes.push(
+        ...eventos.filter(e => e.tipo === "record"),
+        ...pendentes.map(e => ({ tipo: "levelup", ...e })),
+        ...eventos.filter(e => e.tipo === "conquista")
+      );
+
+      // navega para a tela inicial ANTES dos modais:
+      // mesmo se algo falhar nos modais, o usuário nunca fica preso
       this.showScreen("tavern");
-      return;
+
+      // resumo da conclusão (modal sobre a taverna), com botão delegado padrão
+      const numRecordes = eventos.filter(e => e.tipo === "record").length;
+      const xpTotal = xpTreino + xpRecordes + xpConq;
+      const ouroTotal = ouroTreino + ouroRecordes + ouroConq;
+      this.modal(`
+        <div class="m-icon">⚔</div>
+        <h2>TREINO CONCLUÍDO!</h2>
+        <div class="m-big">${totalSeriesSessao} séries realizadas<br>${fmtNum(volTotal)} kg de volume</div>
+        <div class="m-gain">+${fmtNum(xpTotal)} XP · 🪙 +${fmtNum(ouroTotal)}</div>
+        ${numRecordes ? `<p class="m-sub" style="margin-top:.4rem;">🏆 ${numRecordes} novo${numRecordes > 1 ? "s" : ""} recorde${numRecordes > 1 ? "s" : ""}</p>` : ""}
+        <button class="btn btn-primary" data-action="finish-continue">CONTINUAR</button>
+      `);
+    } finally {
+      this._finalizando = false;
     }
-
-    const eventos = [];
-    const totalSeriesSessao = comSeries.reduce((n, i) => n + i.series.length, 0);
-    const volTotal = comSeries.reduce((v, i) =>
-      v + i.series.reduce((x, se) => x + se.peso * se.reps, 0), 0);
-    let numRecordes = 0;
-
-    // por exercício: recordes -> salvar treino
-    for (const item of comSeries) {
-      const ex = State.exercicioPorId(item.exId);
-      const quebras = Game.checarRecordes(item.exId, item.series);
-      numRecordes += quebras.length;
-      for (const q of quebras) {
-        const xpRec = 50;
-        this.ganharXPSilencioso(xpRec, 10);
-        eventos.push({ ...q, tipo: "record", exNome: ex.nome, xp: xpRec });
-      }
-      State.addTreino(item.exId, item.series);
-    }
-    this._descartarSessao();
-
-    // streak
-    const streakNovo = Game.atualizarStreak();
-    if (streakNovo && State.s.streak.atual > 1) {
-      this.toast(`🔥 ${State.s.streak.atual} dias consecutivos!`);
-    }
-
-    // XP de conclusão do treino
-    const xpTreino = 25 + totalSeriesSessao * 5;
-    const ouroTreino = 5 + totalSeriesSessao;
-    this.ganharXPSilencioso(xpTreino, ouroTreino);
-
-    // conquistas
-    const novasConq = Game.checarConquistas();
-    for (const c of novasConq) {
-      this.ganharXPSilencioso(c.xp, c.ouro);
-      eventos.push({ tipo: "conquista", icone: c.icone, nome: c.nome, desc: c.desc, xp: c.xp, ouro: c.ouro });
-    }
-
-    // fila de celebrações: records -> levelups -> conquistas
-    const pendentes = (this._levelupsPendentes || []);
-    this._levelupsPendentes = [];
-    this.filaCelebracoes.push(
-      ...eventos.filter(e => e.tipo === "record"),
-      ...pendentes.map(e => ({ tipo: "levelup", ...e })),
-      ...eventos.filter(e => e.tipo === "conquista")
-    );
-
-    this.updateHUD();
-
-    // tela de conclusão
-    this.modal(`
-      <div class="m-icon">⚔</div>
-      <h2>TREINO CONCLUÍDO!</h2>
-      <p class="m-sub">${escapar(comSeries.length > 1 ? s.nome : State.exercicioPorId(comSeries[0].exId).nome)}</p>
-      <div class="m-big">${totalSeriesSessao} séries · ${fmtNum(volTotal)} kg</div>
-      <div class="m-gain">+${xpTreino}+ XP · 🪙 +${ouroTreino}+</div>
-      ${(numRecordes || novasConq.length) ? `
-        <p class="m-sub" style="margin-top:.4rem;">
-          ${numRecordes ? `💥 ${numRecordes} recorde${numRecordes > 1 ? "s" : ""} quebrado${numRecordes > 1 ? "s" : ""}` : ""}
-          ${numRecordes && novasConq.length ? " · " : ""}
-          ${novasConq.length ? `🎖 ${novasConq.length} conquista${novasConq.length > 1 ? "s" : ""}` : ""}
-        </p>` : ""}
-      <button class="btn btn-primary" id="btn-continuar-treino">CONTINUAR</button>
-    `);
-
-    document.getElementById("btn-continuar-treino").onclick = () => {
-      this.fecharModal();
-      this.proximaCelebracao();
-      if (!this.filaCelebracoes.length) {
-        setTimeout(() => this.showScreen("tavern"), 400);
-      }
-    };
   },
 
   /* ================= DETALHE DO EXERCÍCIO ================= */

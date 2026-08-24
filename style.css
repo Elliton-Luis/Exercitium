@@ -407,6 +407,54 @@ button {
 .finish-btn { margin-top:.8rem; }
 .add-free-btn { margin-bottom:.8rem; }
 
+/* ---- cooldown de registro de série ---- */
+.cooldown-box {
+  margin: 0 0 .55rem;
+  padding: .65rem .8rem;
+  text-align: center;
+  background: rgba(111,168,74,.09);
+  border: 1px dashed var(--xp);
+  border-radius: 4px;
+}
+.cd-title {
+  font-family: var(--font-pixel);
+  color: var(--xp);
+  font-size: 1.15rem;
+  letter-spacing: .06em;
+}
+.cd-sub {
+  font-size: .85rem;
+  color: var(--text-dim);
+  margin: .2rem 0 .55rem;
+}
+.cd-sub b {
+  font-family: var(--font-pixel);
+  font-size: 1.25rem;
+  color: var(--gold-bright);
+}
+.cooldown-box .cd-btn { pointer-events: none; }
+
+/* botões desabilitados: estado visualmente distinto, não apenas opaco */
+.btn:disabled,
+.btn[disabled] {
+  cursor: not-allowed;
+  border-style: dashed;
+  filter: saturate(.4) brightness(.82);
+  box-shadow: none;
+  transform: none;
+}
+.btn-primary:disabled,
+.btn-primary[disabled] {
+  background: linear-gradient(180deg, #33270f 0%, #241b0a 100%);
+  color: var(--text-dim);
+}
+
+/* ---- banner de treino em andamento (recuperação) ---- */
+.panel.recovery {
+  border-color: var(--gold);
+  box-shadow: 0 0 18px rgba(212,168,67,.18), 0 4px 14px var(--shadow);
+}
+
 /* bloco Último/Melhor desempenho — separado dos controles */
 .desempenho .panel-title { margin-bottom:.6rem; }
 .desempenho-grid { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; }

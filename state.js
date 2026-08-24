@@ -3,6 +3,7 @@
    ================================================================ */
 
 const SAVE_KEY = "exercitium_save_v1";
+const SESSAO_KEY = "exercitium_sessao_v1";
 
 const State = {
   s: null, // estado atual
@@ -170,7 +171,8 @@ const State = {
     return { ultimo: ts[0] || null, maiorPeso, maiorReps, melhorSerie, volumeTotal, numTreinos: ts.length };
   },
 
-  /* ---------- Save/Load externo ---------- */  exportar() {
+  /* ---------- Save/Load externo ---------- */
+  exportar() {
     const blob = new Blob([JSON.stringify(this.s, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -199,7 +201,39 @@ const State = {
      A biblioteca padrão de exercícios não é afetada (vive em data.js).  */
   resetarTudo() {
     localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(SESSAO_KEY);
     this.s = this.novo();
     this.save();
+  },
+
+  /* ---------- Sessão de treino em andamento ("save game") ----------
+     Persistida em chave própria, imediatamente após cada ação relevante.
+     status "in_progress" enquanto ativa; removida ao finalizar/descartar. */
+  salvarSessao(sessao) {
+    if (!sessao) { this.apagarSessao(); return; }
+    const dados = JSON.parse(JSON.stringify(sessao));
+    dados.status = "in_progress";
+    dados.salvoEm = Date.now();
+    localStorage.setItem(SESSAO_KEY, JSON.stringify(dados));
+  },
+
+  carregarSessao() {
+    try {
+      const raw = localStorage.getItem(SESSAO_KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      // validação leve: estrutura mínima esperada
+      if (!s || s.status !== "in_progress" || !Array.isArray(s.items) || !s.tipo) {
+        localStorage.removeItem(SESSAO_KEY);
+        return null;
+      }
+      return s;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  apagarSessao() {
+    localStorage.removeItem(SESSAO_KEY);
   }
 };

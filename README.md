@@ -19,6 +19,8 @@ python3 -m http.server 8080
 
 - **Treinos pré-definidos**: crie rotinas reutilizáveis (nome, exercícios em ordem, séries planejadas por exercício) e execute-as com avanço automático
 - **Treino livre**: adicione qualquer exercício na hora e registre quantas séries quiser
+- **Salvamento automático do treino em andamento**: cada série registrada é persistida imediatamente no `localStorage` (`status: in_progress`); se a página for atualizada ou fechada, o treino pode ser continuado ou descartado a partir da tela inicial
+- **Cooldown de 10 segundos** entre séries registradas, com contador visível e proteção também na lógica (não apenas visual)
 - **Rotina como guia**: pule exercícios, volte atrás, faça séries extras e adicione exercícios não planejados — tudo conta normalmente para XP, volume e recordes
 - **Pré-preenchimento inteligente**: os campos de peso/repetições vêm preenchidos com a última performance do exercício
 - **Biblioteca de exercícios** com 39 exercícios populares (músculos principais e secundários já definidos) + criação de exercícios personalizados
@@ -27,6 +29,7 @@ python3 -m http.server 8080
 - **Conquistas** desbloqueáveis registradas permanentemente
 - **Ficha do personagem** com estatísticas derivadas (FORÇA, VIGOR, DISCIPLINA)
 - **Exportar/Importar save** em JSON, como um save de videogame
+- **Zerar todos os dados** com confirmação explícita (a biblioteca padrão é recriada automaticamente)
 
 ## Tecnologias
 
