@@ -107,7 +107,7 @@ const State = {
 
   addRotina(nome, itens) {
     const r = {
-      id: "r" + Date.now().toString(36),
+      id: "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       nome,
       itens: itens.map(i => ({ exercicioId: i.exercicioId, series: +i.series || 3 }))
     };

@@ -850,6 +850,16 @@ const UI = {
     `;
   },
 
+  /* XP/ouro silenciosos: aplica e enfileira level-ups para celebrar depois */
+  ganharXPSilencioso(xp, ouro) {
+    const evts = Game.ganharXP(xp);
+    Game.ganharOuro(ouro);
+    this.updateHUD();
+    if (evts.length) {
+      this._levelupsPendentes = (this._levelupsPendentes || []).concat(evts);
+    }
+  },
+
   registrarSerieSessao() {
     const s = this.sessao;
     const item = s && s.items[s.idx];
