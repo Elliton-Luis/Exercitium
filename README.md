@@ -11,7 +11,9 @@ A interface segue a linguagem de **uma ficha de personagem de RPG medieval antig
 
 Na aba **Personagem** há um guerreiro desenhado em SVG cujo corpo cresce conforme os músculos realmente treinados (peito, costas, ombros, braços e pernas são dimensionados pelo histórico), além do **Mapa de Músculos**: cada grupo macro (Peito, Costas, Ombros, Braços, Pernas, Core) exibe um nível de treino em pips `◆` — I Iniciante, II Desenvolvido, III Avançado, IV Elite — com barra e porcentagem derivadas das séries registradas.
 
-A aba **Evolução** responde "como eu estou evoluindo?": estatísticas gerais (treinos, séries, repetições, volume, peso máximo, recordes, XP acumulado), gráficos de volume por semana e por mês, volume por grupo muscular e os exercícios mais treinados — cada um com gráfico de peso máximo por sessão no seu detalhe.
+A aba **Evolução** responde "como estou evoluindo?": estatísticas gerais (treinos, séries, repetições, volume, peso máximo, recordes, XP acumulado), gráficos de volume por semana e por mês, volume por grupo muscular e os exercícios mais treinados — cada um com gráfico de peso máximo por sessão no seu detalhe.
+
+Na **Forja 🏪**, o ouro conquistado treina vira cosméticos para o guerreiro: capacetes, armaduras, capas, luvas, calças, botas, acessórios e armas. Itens podem ser comprados com ouro (alguns exigindo nível mínimo) ou desbloqueados por feitos — recordes quebrados, volume acumulado, treinos completos. Equipar/desequipar atualiza o guerreiro instantaneamente e fica salvo no save.
 
 ## Como executar
 
