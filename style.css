@@ -369,7 +369,103 @@ button {
 }
 .fab:active { transform: scale(.94); }
 
-/* ================= TREINO ================= */
+/* ================= TREINO / SESSÃO ================= */
+.sessao-nome {
+  font-family: var(--font-title);
+  color: var(--gold);
+  letter-spacing: .15em;
+  font-size: .78rem;
+  margin-bottom: .2rem;
+}
+
+.prog-wrap { margin-bottom: .9rem; text-align:center; }
+.prog-bar {
+  height: 14px;
+  background: #0d0803;
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.8);
+}
+.prog-bar div {
+  height: 100%;
+  background: linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 45%, #8a5f1c 100%);
+  box-shadow: 0 0 10px rgba(212,168,67,.4), inset 0 1px 0 rgba(255,255,255,.35);
+  transition: width .5s cubic-bezier(.22,1,.36,1);
+}
+.prog-text {
+  font-family: var(--font-pixel);
+  font-size: .95rem;
+  color: var(--text-dim);
+  margin-top: .25rem;
+}
+
+.nav-row { display:flex; gap:.5rem; margin-bottom:.8rem; }
+.nav-row .nav-btn { flex:1; padding:.55rem; font-size:.82rem; }
+.nav-next { margin-bottom:.8rem; }
+
+.mini-list { display:flex; flex-direction:column; gap:.35rem; }
+.mini-item {
+  display:flex; justify-content:space-between; align-items:center; gap:.6rem;
+  padding:.55rem .8rem;
+  background:linear-gradient(180deg,var(--panel),var(--panel-2));
+  border:1px solid var(--border); border-radius:3px;
+  color:var(--text); font-family:var(--font-body); font-size:.95rem;
+  text-align:left;
+}
+.mini-item.done { border-left:3px solid var(--xp); opacity:.75; }
+.mini-info { font-family:var(--font-pixel); color:var(--gold); white-space:nowrap; }
+
+.bloco-ex.active { border-color:var(--gold); box-shadow:0 0 14px rgba(212,168,67,.18); }
+.bloco-resumo { font-family:var(--font-pixel); color:var(--text-dim); margin-bottom:.6rem; }
+.bloco-del { margin-left:auto; }
+.finish-btn { margin-top:.8rem; }
+.add-free-btn { margin-bottom:.8rem; }
+
+/* ================= ESCOLHA DO TREINO / ROTINAS ================= */
+.rot-list { display:flex; flex-direction:column; gap:.5rem; }
+.rot-card {
+  flex:1; min-width:0; text-align:left;
+  padding:.85rem .95rem;
+  background:linear-gradient(180deg,var(--panel) 0%,var(--panel-2) 100%);
+  border:2px solid var(--border); border-left:4px solid var(--gold);
+  border-radius:4px; color:var(--text);
+  transition:transform .08s, border-color .15s;
+  box-shadow:0 3px 0 #000;
+}
+.rot-card:hover { border-color:var(--gold); }
+.rot-card:active { transform:translateY(2px); box-shadow:0 1px 0 #000; }
+.rot-nome { font-family:var(--font-title); font-weight:700; color:var(--gold-bright); font-size:.98rem; }
+.rot-info { font-family:var(--font-pixel); font-size:.9rem; color:var(--bronze); margin:.1rem 0; }
+.rot-exs { font-size:.82rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.free-btn { margin-top:.4rem; }
+
+.rot-item { padding:.7rem .8rem; }
+.rot-item-head { display:flex; align-items:center; gap:.6rem; }
+.rot-ordem { font-family:var(--font-pixel); color:var(--bronze); }
+.rot-item-nome { font-family:var(--font-body); font-size:1.02rem; color:var(--text); flex:1; min-width:0; }
+.rot-item-controls {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-top:.55rem; gap:.5rem;
+}
+.stepper { display:flex; align-items:center; gap:.5rem; }
+.step-btn {
+  width:34px; height:34px;
+  display:grid; place-items:center;
+  background:#0d0803;
+  border:2px solid var(--border);
+  border-radius:4px;
+  color:var(--gold-bright);
+  font-family:var(--font-pixel);
+  font-size:1.2rem;
+}
+.step-btn:hover { border-color:var(--gold); }
+.step-btn:active { transform:scale(.92); }
+.step-val { font-family:var(--font-pixel); font-size:1rem; color:var(--text); min-width:86px; text-align:center; }
+.rot-item-nav { display:flex; gap:.3rem; }
+.rot-item-nav .icon-btn[disabled] { opacity:.3; pointer-events:none; }
+
+/* ================= TREINO (legado/geral) ================= */
 .workout-head { text-align: center; margin-bottom: 1rem; }
 .workout-ex-name {
   font-family: var(--font-title);
