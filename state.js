@@ -18,6 +18,7 @@ const State = {
         ouro: 0
       },
       exercicios: [],       // personalizados [{id, nome, grupo, principal[], secundarios[], custom:true}]
+      rotinas: [],          // [{id, nome, itens:[{exercicioId, series}]}]
       treinos: [],          // [{id, exercicioId, data, series:[{peso,reps}]}]
       recordes: {},         // por exercicioId: {maiorPeso:{valor,reps,data}, maiorReps:{...}, melhorSerie:{...}, melhorVolumeTreino:{...}, quebras}
       streak: { atual: 0, melhor: 0, ultimoDia: null },
@@ -37,6 +38,8 @@ const State = {
       this.s.personagem = Object.assign({ nome:"Aventureiro", nivel:1, xp:0, ouro:0 }, parsed.personagem);
       this.s.streak = Object.assign({ atual:0, melhor:0, ultimoDia:null }, parsed.streak);
       this.s.config = Object.assign({ som:true }, parsed.config);
+      // migração defensiva: campos novos em saves antigos
+      if (!Array.isArray(this.s.rotinas)) this.s.rotinas = [];
       return true;
     } catch (e) {
       console.error("Erro ao carregar save:", e);
@@ -94,6 +97,34 @@ const State = {
 
   removeExercicio(id) {
     this.s.exercicios = this.s.exercicios.filter(e => e.id !== id);
+    this.save();
+  },
+
+  /* ---------- Rotinas (treinos pré-definidos) ---------- */
+  rotinaPorId(id) {
+    return this.s.rotinas.find(r => r.id === id) || null;
+  },
+
+  addRotina(nome, itens) {
+    const r = {
+      id: "r" + Date.now().toString(36),
+      nome,
+      itens: itens.map(i => ({ exercicioId: i.exercicioId, series: +i.series || 3 }))
+    };
+    this.s.rotinas.push(r);
+    this.save();
+    return r;
+  },
+
+  updateRotina(id, nome, itens) {
+    const r = this.rotinaPorId(id);
+    if (!r) return;
+    Object.assign(r, { nome, itens: itens.map(i => ({ exercicioId: i.exercicioId, series: +i.series || 3 })) });
+    this.save();
+  },
+
+  removeRotina(id) {
+    this.s.rotinas = this.s.rotinas.filter(r => r.id !== id);
     this.save();
   },
 
