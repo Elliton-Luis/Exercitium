@@ -9,7 +9,9 @@ Não é um sistema de academia: é um save de RPG no qual o treino é a forma de
 
 A interface segue a linguagem de **uma ficha de personagem de RPG medieval antigo**: fundo de pedra escura iluminada por tocha, painéis em madeira e couro com cantos ornamentados em bronze, botões com aparência de metal cinzelado, tipografia medieval legível (Cinzel/Cinzel Decorative para títulos, IM Fell English para texto, VT323 para números).
 
-Na aba **Personagem** há um guerreiro desenhado em SVG cujo corpo cresce conforme os músculos realmente treinados (peito, costas, ombros, braços e pernas são dimensionados pelo histórico), além do **Mapa de Músculos**: silhueta e barras onde cada grupo recebe uma cor na escala de calor dourado→vermelho, proporcional à sua fatia do volume total treinado.
+Na aba **Personagem** há um guerreiro desenhado em SVG cujo corpo cresce conforme os músculos realmente treinados (peito, costas, ombros, braços e pernas são dimensionados pelo histórico), além do **Mapa de Músculos**: cada grupo macro (Peito, Costas, Ombros, Braços, Pernas, Core) exibe um nível de treino em pips `◆` — I Iniciante, II Desenvolvido, III Avançado, IV Elite — com barra e porcentagem derivadas das séries registradas.
+
+A aba **Evolução** responde "como eu estou evoluindo?": estatísticas gerais (treinos, séries, repetições, volume, peso máximo, recordes, XP acumulado), gráficos de volume por semana e por mês, volume por grupo muscular e os exercícios mais treinados — cada um com gráfico de peso máximo por sessão no seu detalhe.
 
 ## Como executar
 
