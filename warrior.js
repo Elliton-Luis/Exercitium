@@ -289,6 +289,7 @@ const Warrior = (() => {
 
     const stCorpo = estiloDe(equipado(s, "corpo"));
     const stCab   = estiloDe(equipado(s, "cabeca"));
+    const idCab   = equipado(s, "cabeca");
     const stCalc  = estiloDe(equipado(s, "calcas"));
     const stBotas = estiloDe(equipado(s, "botas"));
     const stLuvas = estiloDe(equipado(s, "luvas"));
@@ -365,7 +366,7 @@ const Warrior = (() => {
           <rect x="${px - armW / 2}" y="44" width="${armW}" height="30" rx="${armW / 2}"
                 fill="${stCorpo.medio}" stroke="#171009"/>
           <rect x="${px - armW / 2}" y="70" width="${armW}" height="16" rx="2"
-                fill="${br.couro}" stroke="#171009"/>
+                fill="#4a2f18" stroke="#171009"/>
           <circle cx="${px}" cy="89" r="3.2" fill="${stLuvas.cor}" stroke="#171009"/>
         </g>
         <circle cx="${px}" cy="46" r="${pdR}" fill="${stCorpo.claro}" stroke="#171009" stroke-width="1.4"/>
