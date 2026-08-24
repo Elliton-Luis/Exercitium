@@ -336,6 +336,19 @@ button {
 }
 .cs-row .cs-val { color: var(--gold-bright); font-weight: bold; }
 
+/* resumo em pergaminho (taverna): tinta escura sobre fundo claro */
+.character-summary .cs-name {
+  font-family: var(--font-title);
+  font-weight: 900;
+  font-size: 1.3rem;
+  line-height: 1.25;
+  color: #3a2708;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.character-summary .cs-row span:first-child { color: #5a3d12; }
+.character-summary .cs-row .cs-val { color: #3a2708; }
+
 .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
 .kv {
   padding: .55rem .6rem;
@@ -811,21 +824,21 @@ button {
 .danger-zone::before { --c: rgba(160,70,45,.4); }
 .danger-zone .panel-title { color:#c86a50; }
 
-/* ================= ESTATÍSTICAS DERIVADAS ================ */
+/* ================= ESTATÍSTICAS DERIVADAS (painel escuro) == */
 .stat-block { display:flex; gap:.6rem; margin-top:.8rem; }
 .stat-box {
   flex:1;
   min-width:0;
-  background: rgba(43,29,12,.08);
-  border: 1px solid #7a5c2e;
+  background: #17100a;
+  border: 1px solid var(--border);
   border-radius: 2px;
   padding: .6rem .3rem;
   text-align: center;
 }
-.stat-label { font-family: var(--font-title); font-size:.6rem; letter-spacing:.12em; color:#7a5c2e; text-transform:uppercase; }
-.stat-value { font-family: var(--font-pixel); font-size: 1.55rem; color:#3a2708; }
-.stat-bar { height:6px; background:rgba(43,29,12,.15); border-radius:1px; margin-top:.35rem; overflow:hidden; }
-.stat-bar div { height:100%; background:#8a6420; }
+.stat-label { font-family: var(--font-title); font-size:.6rem; letter-spacing:.12em; color:var(--text-dim); text-transform:uppercase; }
+.stat-value { font-family: var(--font-pixel); font-size: 1.55rem; color: var(--gold-bright); }
+.stat-bar { height:6px; background:#0a0602; border:1px solid var(--border); border-radius:1px; margin-top:.35rem; overflow:hidden; }
+.stat-bar div { height:100%; background:var(--gold); }
 
 /* ================= MAPA DE MÚSCULOS ====================== */
 .mapa-wrap { display:flex; gap:.9rem; align-items:flex-start; }
