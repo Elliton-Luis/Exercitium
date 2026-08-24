@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Exercitium — Crônicas do Ferro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=VT323&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ TOPO / HUD ============ -->
+  <header id="hud" class="hidden">
+    <div class="hud-left">
+      <div id="hud-avatar" class="hud-avatar">🛡</div>
+      <div class="hud-info">
+        <div id="hud-name" class="hud-name">Aventureiro</div>
+        <div class="hud-xpbar-wrap">
+          <div id="hud-xpbar" class="xpbar"><div class="xpbar-fill" style="width:0%"></div><span id="hud-xptext" class="xpbar-text">NV 1</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="hud-right">
+      <span id="hud-gold" title="Ouro">🪙 0</span>
+      <span id="hud-streak" title="Sequência">🔥 0</span>
+    </div>
+  </header>
+
+  <!-- ============ TELAS ============ -->
+  <main id="screens">
+
+    <!-- TAVERNA (home) -->
+    <section id="screen-tavern" class="screen">
+      <div class="tavern-banner">
+        <h1 class="game-title">EXERCITIUM</h1>
+        <p class="game-subtitle">⚔ Crônicas do Ferro ⚔</p>
+      </div>
+
+      <div class="parchment character-summary" id="tavern-character"></div>
+
+      <button class="btn btn-primary btn-big" data-action="start-workout">
+        ⚔ INICIAR TREINO
+      </button>
+
+      <nav class="menu">
+        <button class="menu-item" data-action="goto-exercises"><span class="mi-icon">📜</span><span>Exercícios</span></button>
+        <button class="menu-item" data-action="goto-records"><span class="mi-icon">🏆</span><span>Recordes</span></button>
+        <button class="menu-item" data-action="goto-character"><span class="mi-icon">👤</span><span>Personagem</span></button>
+        <button class="menu-item" data-action="goto-achievements"><span class="mi-icon">🎖</span><span>Conquistas</span></button>
+        <button class="menu-item" data-action="goto-history"><span class="mi-icon">📖</span><span>Histórico</span></button>
+        <button class="menu-item" data-action="goto-saves"><span class="mi-icon">💾</span><span>Saves</span></button>
+      </nav>
+    </section>
+
+    <!-- TREINO -->
+    <section id="screen-workout" class="screen hidden"></section>
+
+    <!-- EXERCÍCIOS -->
+    <section id="screen-exercises" class="screen hidden"></section>
+
+    <!-- RECORDES -->
+    <section id="screen-records" class="screen hidden"></section>
+
+    <!-- PERSONAGEM -->
+    <section id="screen-character" class="screen hidden"></section>
+
+    <!-- CONQUISTAS -->
+    <section id="screen-achievements" class="screen hidden"></section>
+
+    <!-- HISTÓRICO -->
+    <section id="screen-history" class="screen hidden"></section>
+
+    <!-- SAVES -->
+    <section id="screen-saves" class="screen hidden"></section>
+
+  </main>
+</div>
+
+<!-- ============ OVERLAY: MODAL / NOTIFICAÇÕES ============ -->
+<div id="overlay" class="hidden">
+  <div id="modal-root"></div>
+</div>
+<div id="toasts"></div>
+
+<script src="data.js"></script>
+<script src="state.js"></script>
+<script src="game.js"></script>
+<script src="ui.js"></script>
+<script>UI.init();</script>
+</body>
+</html>
