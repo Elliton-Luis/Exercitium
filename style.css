@@ -871,6 +871,93 @@ button {
   text-align:right;
   flex-shrink:0;
 }
+
+/* linhas do mapa por grupo macro (nome + pips + %) */
+.gm { margin-bottom:.55rem; }
+.gm-top { display:flex; align-items:center; gap:.5rem; }
+.gm-nome {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: .78rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+.gm-pips { font-size: .95rem; letter-spacing: .18em; }
+.gm-pips .pip { color: #3a2a14; }
+.gm-pips .pip.on.lv1 { color: #97814f; }
+.gm-pips .pip.on.lv2 { color: var(--gold); }
+.gm-pips .pip.on.lv3 { color: #cf7227; }
+.gm-pips .pip.on.lv4 { color: #c0392b; text-shadow: 0 0 6px rgba(192,57,43,.5); }
+.gm-pct { font-family: var(--font-pixel); font-size: .95rem; color: var(--gold); }
+.gm-bar {
+  height: 8px;
+  margin-top: .22rem;
+  background:#0a0602;
+  border:1px solid var(--border);
+  border-radius:1px;
+  overflow:hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.8);
+}
+.gm-bar div { height:100%; transition: width .6s ease; }
+.gm-bar .lv1 { background:#7a683f; }
+.gm-bar .lv2 { background:var(--gold); }
+.gm-bar .lv3 { background:#b06a2a; }
+.gm-bar .lv4 { background:#c0392b; box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
+.mapa-legend {
+  font-family: var(--font-pixel);
+  font-size: .88rem;
+  color: var(--text-dim);
+  text-align:center;
+  margin-top:.6rem;
+}
+
+/* ================= GRÁFICOS — colunas de pedra e ouro ====== */
+.chart-cols {
+  display:flex;
+  align-items:flex-end;
+  gap:.45rem;
+  height:130px;
+  padding-top:.4rem;
+}
+.vcol {
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:.3rem;
+  height:100%;
+}
+.vfill-wrap {
+  flex:1;
+  width:100%;
+  max-width:34px;
+  display:flex;
+  align-items:flex-end;
+  background:#0a0602;
+  border:1px solid var(--border);
+  border-radius:2px 2px 0 0;
+  overflow:hidden;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.85);
+}
+.vfill {
+  width:100%;
+  background: linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 50%, #6e511a 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+}
+.vlabel {
+  font-family: var(--font-pixel);
+  font-size:.82rem;
+  color:var(--text-dim);
+  white-space:nowrap;
+}
+
+.evol-item { cursor:pointer; width:100%; }
+.evol-item:hover { border-color: var(--gold); filter:brightness(1.15); }
+.evol-svg { width:100%; height:auto; display:block; }
 @media (max-width: 400px) {
   .mlabel { width: 72px; font-size:.85rem; }
   .mapa-silhueta { width: 74px; }
