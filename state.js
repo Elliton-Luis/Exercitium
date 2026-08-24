@@ -16,8 +16,19 @@ const State = {
         nome: "Aventureiro",
         nivel: 1,
         xp: 0,
-        ouro: 0
+        ouro: 0,
+        equipamento: {
+          cabeca: "elmo_ferro",
+          corpo: "armadura_ferro",
+          capa: "capa_nenhuma",
+          luvas: "luvas_couro",
+          calcas: "calcas_couro",
+          botas: "botas_couro",
+          acessorio: "colar_pano",
+          arma: "espada_ferro"
+        }
       },
+      inventario: [],       // ids de cosméticos comprados/possuídos
       exercicios: [],       // personalizados [{id, nome, grupo, principal[], secundarios[], custom:true}]
       rotinas: [],          // [{id, nome, itens:[{exercicioId, series}]}]
       treinos: [],          // [{id, exercicioId, data, series:[{peso,reps}]}]
@@ -41,6 +52,12 @@ const State = {
       this.s.config = Object.assign({ som:true }, parsed.config);
       // migração defensiva: campos novos em saves antigos
       if (!Array.isArray(this.s.rotinas)) this.s.rotinas = [];
+      if (!Array.isArray(this.s.inventario)) this.s.inventario = [];
+      this.s.personagem.equipamento = Object.assign({
+        cabeca: "elmo_ferro", corpo: "armadura_ferro", capa: "capa_nenhuma",
+        luvas: "luvas_couro", calcas: "calcas_couro", botas: "botas_couro",
+        acessorio: "colar_pano", arma: "espada_ferro"
+      }, parsed.personagem.equipamento || {});
       return true;
     } catch (e) {
       console.error("Erro ao carregar save:", e);
@@ -235,5 +252,23 @@ const State = {
 
   apagarSessao() {
     localStorage.removeItem(SESSAO_KEY);
+  },
+
+  /* ---------- Cosméticos do guerreiro ---------- */
+  comprarCosmetico(id, preco) {
+    const p = this.s.personagem;
+    if (p.ouro < preco) return false;
+    if (this.s.inventario.includes(id)) return false;
+    p.ouro -= preco;
+    this.s.inventario.push(id);
+    this.save();
+    return true;
+  },
+
+  equiparCosmetico(slot, id) {
+    if (!this.s.personagem.equipamento) return false;
+    this.s.personagem.equipamento[slot] = id;
+    this.save();
+    return true;
   }
 };
