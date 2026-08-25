@@ -13,7 +13,7 @@ Na aba **Personagem** há um guerreiro desenhado em SVG cujo corpo cresce confor
 
 A aba **Evolução** responde "como estou evoluindo?": estatísticas gerais (treinos, séries, repetições, volume, peso máximo, recordes, XP acumulado), gráficos de volume por semana e por mês, volume por grupo muscular e os exercícios mais treinados — cada um com gráfico de peso máximo por sessão no seu detalhe.
 
-Na **Forja 🏪**, o ouro conquistado treina vira cosméticos para o guerreiro: capacetes, armaduras, capas, luvas, calças, botas, acessórios e armas. Itens podem ser comprados com ouro (alguns exigindo nível mínimo) ou desbloqueados por feitos — recordes quebrados, volume acumulado, treinos completos. Equipar/desequipar atualiza o guerreiro instantaneamente e fica salvo no save.
+Na **Forja 🏪**, o ouro conquistado treinando vira cosméticos para o guerreiro: mais de 40 itens em 8 slots (capacetes, armaduras, capas, luvas, calças, botas, acessórios e armas), organizados por raridade — Comum, Incomum, Raro, Épico e Lendário. O guerreiro fica sempre visível na tela: tocar num item mostra a **prévia ao vivo** nele, com comparação ATUAL vs NOVO antes de confirmar EQUIPAR. Itens de raridade maior mudam a silhueta do personagem (armadura pesada alarga os ombros, elmos com chifres/coroa/capuz mudam a cabeça, capas variam comprimento e cor, e as armas têm formatos próprios: espada, espadão, machado, martelo e lança). Alguns itens são comprados com ouro; outros são desbloqueados por feitos — recordes quebrados, volume acumulado ou treinos completos.
 
 ## Como executar
 
