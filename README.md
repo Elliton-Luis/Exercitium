@@ -5,7 +5,7 @@ Escolha exercício → registre séries → ganhe XP → quebre recordes → sub
 
 Não é um sistema de academia: é um save de RPG no qual o treino é a forma de evoluir o personagem.
 
-## Identidade visual
+## Conceito
 
 A interface segue a linguagem de **uma ficha de personagem de RPG medieval antigo**: fundo de pedra escura iluminada por tocha, painéis em madeira e couro com cantos ornamentados em bronze, botões com aparência de metal cinzelado, tipografia medieval legível (Cinzel/Cinzel Decorative para títulos, IM Fell English para texto, VT323 para números).
 
@@ -15,17 +15,48 @@ A aba **Evolução** responde "como estou evoluindo?": estatísticas gerais (tre
 
 Na **Forja 🏪**, o ouro conquistado treinando vira cosméticos para o guerreiro: mais de 40 itens em 8 slots (capacetes, armaduras, capas, luvas, calças, botas, acessórios e armas), organizados por raridade — Comum, Incomum, Raro, Épico e Lendário. O guerreiro fica sempre visível na tela: tocar num item mostra a **prévia ao vivo** nele, com comparação ATUAL vs NOVO antes de confirmar EQUIPAR. Itens de raridade maior mudam a silhueta do personagem (armadura pesada alarga os ombros, elmos com chifres/coroa/capuz mudam a cabeça, capas variam comprimento e cor, e as armas têm formatos próprios: espada, espadão, machado, martelo e lança). Alguns itens são comprados com ouro; outros são desbloqueados por feitos — recordes quebrados, volume acumulado ou treinos completos.
 
-## Como executar
+## Screenshots
 
-Abra `index.html` no navegador — funciona 100% offline, sem backend.
+<table>
+  <tr>
+    <td align="center"><img src="img/screenshots/inicio.jpeg" alt="Início" width="270"><br><sub><b>Início</b></sub></td>
+    <td align="center"><img src="img/screenshots/ficha%20do%20heroi.jpeg" alt="Ficha do Herói" width="270"><br><sub><b>Ficha do Herói</b></sub></td>
+    <td align="center"><img src="img/screenshots/biblioteca%20de%20exercicios.jpeg" alt="Biblioteca de Exercícios" width="270"><br><sub><b>Biblioteca de Exercícios</b></sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="img/screenshots/historico%20de%20treino.jpeg" alt="Histórico de Treino" width="270"><br><sub><b>Histórico de Treino</b></sub></td>
+    <td align="center"><img src="img/screenshots/histórico.jpeg" alt="Histórico" width="270"><br><sub><b>Histórico</b></sub></td>
+    <td align="center"><img src="img/screenshots/evolucao.jpeg" alt="Evolução" width="270"><br><sub><b>Evolução</b></sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="img/screenshots/mapa%20de%20musculos.jpeg" alt="Mapa de Músculos" width="270"><br><sub><b>Mapa de Músculos</b></sub></td>
+    <td align="center"><img src="img/screenshots/forja.jpeg" alt="Forja" width="270"><br><sub><b>Forja</b></sub></td>
+    <td align="center"><img src="img/screenshots/trofeus.jpeg" alt="Troféus" width="270"><br><sub><b>Troféus</b></sub></td>
+  </tr>
+  <tr>
+    <td colspan="3" align="center"><img src="img/screenshots/saves.jpeg" alt="Saves" width="270"><br><sub><b>Saves</b></sub></td>
+  </tr>
+</table>
 
-Ou, se preferir servir localmente:
+## Estrutura
 
-```bash
-python3 -m http.server 8080
+```
+index.html   estrutura das telas
+style.css    identidade visual RPG medieval retrô
+data.js      biblioteca padrão de exercícios + conquistas + curva de XP
+state.js     estado e persistência (localStorage), CRUDs, export/import
+game.js      regras de jogo (XP, níveis, recordes, streak, conquistas)
+warrior.js   guerreiro visual em SVG + mapa de músculos (derivados do histórico)
+ui.js        telas, fluxos e feedback visual
 ```
 
-## Funcionalidades
+Tecnologias:
+
+- HTML5, CSS3 e JavaScript puros (sem frameworks, sem dependências)
+- Persistência via `localStorage`
+- Fontes Google Fonts (Cinzel, IM Fell English, VT323)
+
+## Características
 
 - **Treinos pré-definidos**: crie rotinas reutilizáveis (nome, exercícios em ordem, séries planejadas por exercício) e execute-as com avanço automático
 - **Treino livre**: adicione qualquer exercício na hora e registre quantas séries quiser
@@ -41,24 +72,16 @@ python3 -m http.server 8080
 - **Exportar/Importar save** em JSON, como um save de videogame
 - **Zerar todos os dados** com confirmação explícita (a biblioteca padrão é recriada automaticamente)
 
-## Tecnologias
+## Como rodar
 
-- HTML5, CSS3 e JavaScript puros (sem frameworks, sem dependências)
-- Persistência via `localStorage`
-- Fontes Google Fonts (Cinzel, IM Fell English, VT323)
+Abra `index.html` no navegador — funciona 100% offline, sem backend.
 
-## Estrutura
+Ou, se preferir servir localmente:
 
-```
-index.html   estrutura das telas
-style.css    identidade visual RPG medieval retrô
-data.js      biblioteca padrão de exercícios + conquistas + curva de XP
-state.js     estado e persistência (localStorage), CRUDs, export/import
-game.js      regras de jogo (XP, níveis, recordes, streak, conquistas)
-warrior.js   guerreiro visual em SVG + mapa de músculos (derivados do histórico)
-ui.js        telas, fluxos e feedback visual
+```bash
+python3 -m http.server 8080
 ```
 
-## Screenshots
+## Licença
 
-<!-- Adicione screenshots aqui -->
+Livre para usar, modificar, distribuir e fazer o que quiser — sem garantias.
