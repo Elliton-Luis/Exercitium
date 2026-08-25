@@ -841,8 +841,25 @@ button {
 .stat-bar div { height:100%; background:var(--gold); }
 
 /* ================= MAPA DE MÚSCULOS ====================== */
-.mapa-wrap { display:flex; gap:.9rem; align-items:flex-start; }
-.mapa-silhueta { width: 104px; flex-shrink:0; }
+.mapa-wrap { display:flex; flex-direction:column; gap:.7rem; align-items:center; }
+.mapa-views { display:flex; gap:1.2rem; justify-content:center; flex-wrap:wrap; width:100%; }
+.mapa-view {
+  flex:1;
+  min-width:110px;
+  max-width:150px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:.15rem;
+}
+.mapa-view span {
+  font-family: var(--font-title);
+  font-size: .62rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--bronze);
+}
+.mapa-silhueta { width: 100%; max-width: 118px; height:auto; }
 .mapa-bars { flex:1; min-width:0; display:flex; flex-direction:column; gap:.32rem; }
 .mapa-legenda {
   font-family: var(--font-title);

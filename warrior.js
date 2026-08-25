@@ -446,47 +446,81 @@ const Warrior = (() => {
       return `rgba(${Math.round(184 + 12 * r)},${Math.round(146 - 88 * r)},${Math.round(58 - 16 * r)},${(r > 0 ? .3 + .7 * r : .08).toFixed(2)})`;
     };
 
-    const silhueta = `
+    /* silhueta frontal (músculos visíveis de frente) */
+    const silhuetaFrente = `
       <svg class="mapa-silhueta" viewBox="0 0 100 170" aria-hidden="true">
         <g stroke="#171009" stroke-width=".9">
-          <!-- cabeça e pescoço -->
           <circle cx="50" cy="13" r="8" fill="#c79b6f"/>
           <rect x="46" y="21" width="8" height="6" fill="#b98d63"/>
-          <!-- trapézio (Costas) -->
           <path d="M33,28 Q50,23 67,28 L66,34 Q50,29 34,34 Z" fill="${heat("Costas")}"/>
-          <!-- deltóides (Ombros) -->
           <ellipse cx="32" cy="38" rx="7.5" ry="6.5" fill="${heat("Ombros")}"/>
           <ellipse cx="68" cy="38" rx="7.5" ry="6.5" fill="${heat("Ombros")}"/>
-          <!-- peitorais (Peito), separados no esterno -->
           <rect x="39" y="33" width="10.4" height="13" rx="4" fill="${heat("Peito")}"/>
           <rect x="50.6" y="33" width="10.4" height="13" rx="4" fill="${heat("Peito")}"/>
-          <!-- bíceps (Braços) -->
           <ellipse cx="26.5" cy="51" rx="5.2" ry="8.5" fill="${heat("Braços")}"/>
           <ellipse cx="73.5" cy="51" rx="5.2" ry="8.5" fill="${heat("Braços")}"/>
-          <!-- antebraços (Braços), afilados -->
           <polygon points="22.5,60 30.5,60 28.5,79 24.5,79" fill="${heat("Braços")}"/>
           <polygon points="69.5,60 77.5,60 75.5,79 71.5,79" fill="${heat("Braços")}"/>
-          <!-- mãos -->
           <circle cx="26.5" cy="83" r="3" fill="#b98d63"/>
           <circle cx="73.5" cy="83" r="3" fill="#b98d63"/>
-          <!-- abdominais (Core), em pares -->
           <rect x="42" y="63" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
           <rect x="51" y="63" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
           <rect x="42" y="70" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
           <rect x="51" y="70" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
           <rect x="43" y="77" width="6" height="5" rx="1.5" fill="${heat("Core")}"/>
           <rect x="51" y="77" width="6" height="5" rx="1.5" fill="${heat("Core")}"/>
-          <!-- quadríceps (Pernas), coxas separadas -->
           <polygon points="39,86 49.5,86 48,126 40,126" fill="${heat("Pernas")}"/>
           <polygon points="50.5,86 61,86 60,126 52,126" fill="${heat("Pernas")}"/>
-          <!-- panturrilhas (Pernas) -->
           <ellipse cx="44.5" cy="137" rx="5.4" ry="10.5" fill="${heat("Pernas")}"/>
           <ellipse cx="55.5" cy="137" rx="5.4" ry="10.5" fill="${heat("Pernas")}"/>
-          <!-- pés -->
           <rect x="39" y="148" width="12" height="5.5" rx="1.5" fill="#33200f"/>
           <rect x="49" y="148" width="12" height="5.5" rx="1.5" fill="#33200f"/>
         </g>
       </svg>`;
+
+    /* silhueta posterior (costas, lombar, glúteos e posterior de coxa) */
+    const silhuetaCostas = `
+      <svg class="mapa-silhueta" viewBox="0 0 100 170" aria-hidden="true">
+        <g stroke="#171009" stroke-width=".9">
+          <circle cx="50" cy="13" r="8" fill="#b98d63"/>
+          <rect x="46" y="21" width="8" height="6" fill="#a87e56"/>
+          <path d="M35,26 Q50,21 65,26 L61,38 Q50,33 39,38 Z" fill="${heat("Costas")}"/>
+          <path d="M46,30 L50,44 L54,30 L50,34 Z" fill="${heat("Ombros")}" opacity=".55"/>
+          <ellipse cx="32" cy="38" rx="7.5" ry="6.5" fill="${heat("Ombros")}"/>
+          <ellipse cx="68" cy="38" rx="7.5" ry="6.5" fill="${heat("Ombros")}"/>
+          <!-- dorsais (Costas), asas ao lado da coluna -->
+          <polygon points="37,36 47,35 45,70 40,64" fill="${heat("Costas")}"/>
+          <polygon points="63,36 53,35 55,70 60,64" fill="${heat("Costas")}"/>
+          <line x1="50" y1="34" x2="50" y2="78" stroke="#171009" stroke-width="1.4"/>
+          <!-- tríceps (Braços) -->
+          <ellipse cx="26.5" cy="52" rx="5.2" ry="9" fill="${heat("Braços")}"/>
+          <ellipse cx="73.5" cy="52" rx="5.2" ry="9" fill="${heat("Braços")}"/>
+          <polygon points="22.5,62 30.5,62 28.5,80 24.5,80" fill="${heat("Braços")}"/>
+          <polygon points="69.5,62 77.5,62 75.5,80 71.5,80" fill="${heat("Braços")}"/>
+          <circle cx="26.5" cy="84" r="3" fill="#b98d63"/>
+          <circle cx="73.5" cy="84" r="3" fill="#b98d63"/>
+          <!-- lombares (Core) -->
+          <rect x="42" y="72" width="16" height="10" rx="2" fill="${heat("Core")}"/>
+          <!-- glúteos (Pernas) -->
+          <rect x="39" y="83" width="10.5" height="15" rx="5" fill="${heat("Pernas")}"/>
+          <rect x="50.5" y="83" width="10.5" height="15" rx="5" fill="${heat("Pernas")}"/>
+          <!-- posterior de coxa (Pernas) -->
+          <polygon points="40,99 49.5,99 48,132 41,132" fill="${heat("Pernas")}"/>
+          <polygon points="50.5,99 60,99 59,132 52,132" fill="${heat("Pernas")}"/>
+          <!-- panturrilhas (Panturrilha/Pernas) -->
+          <ellipse cx="44.5" cy="143" rx="5.4" ry="10" fill="${heat("Panturrilha", "Pernas")}"/>
+          <ellipse cx="55.5" cy="143" rx="5.4" ry="10" fill="${heat("Panturrilha", "Pernas")}"/>
+          <rect x="39" y="153" width="12" height="5.5" rx="1.5" fill="#33200f"/>
+          <rect x="49" y="153" width="12" height="5.5" rx="1.5" fill="#33200f"/>
+        </g>
+      </svg>`;
+
+    /* duas vistas lado a lado: frente e costas */
+    const silhueta = `
+      <div class="mapa-views">
+        <div class="mapa-view">${silhuetaFrente}<span>Frente</span></div>
+        <div class="mapa-view">${silhuetaCostas}<span>Costas</span></div>
+      </div>`;
 
     const pips = lvl => {
       let out = "";
