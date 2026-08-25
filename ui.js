@@ -1148,6 +1148,12 @@ const UI = {
         return;
       }
 
+      // snapshot dos cosméticos por recompensa, para detectar novos desbloqueios
+      const cosmAntes = Warrior.COSMETICOS
+        .filter(c => c.origem.tipo === "recordes" || c.origem.tipo === "treinos" || c.origem.tipo === "volume")
+        .filter(c => Warrior.possui(State.s, c.id))
+        .map(c => c.id);
+
       const eventos = [];
       const totalSeriesSessao = comSeries.reduce((n, i) => n + i.series.length, 0);
       const volTotal = comSeries.reduce((v, i) =>
@@ -1190,6 +1196,14 @@ const UI = {
       }
       const xpConq = novasConq.reduce((n, c) => n + c.xp, 0);
       const ouroConq = novasConq.reduce((n, c) => n + c.ouro, 0);
+
+      // novos cosméticos desbloqueados por feitos desta sessão
+      const novosCosm = Warrior.COSMETICOS
+        .filter(c => !cosmAntes.includes(c.id))
+        .filter(c => Warrior.possui(State.s, c.id));
+      for (const c of novosCosm) {
+        this.toast(`🎁 Novo visual desbloqueado na Forja: <b>${escapar(c.nome)}</b>!`);
+      }
 
       // fila de celebrações: records -> levelups -> conquistas
       const pendentes = (this._levelupsPendentes || []);
