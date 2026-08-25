@@ -383,18 +383,27 @@ const Warrior = (() => {
   }
 
   /* ---- desenho do guerreiro (SVG em camadas) ---- */
-  function svg(s) {
+  function svg(s, opts = {}) {
+    // prévia da Forja: opts.equipamento sobrepõe temporariamente os slots
+    if (opts.equipamento) {
+      s = { ...s, personagem: { ...s.personagem,
+        equipamento: { ...s.personagem.equipamento, ...opts.equipamento } } };
+    }
     const p = mapaPct(s);
     const f = fatores(p);
     const cx = 60;
 
-    const sh    = 17 + f.ombros * 9;   // meia-largura dos ombros
-    const waist = 11 + f.core * 4;     // meia-largura da cintura
-    const legW  = 9 + f.pernas * 7;    // largura de cada perna
-    const armW  = 8 + f.bracos * 6;    // espessura do braço
-    const pdR   = 5.5 + f.ombros * 4.5;// raio da pauldron
+    const idCorpo = equipado(s, "corpo");
+    const stCorpo = estiloDe(idCorpo) || {};
+    const bulk     = stCorpo.bulk != null ? stCorpo.bulk : 1.5;
 
-    const stCorpo = estiloDe(equipado(s, "corpo"));
+    const sh    = 17 + f.ombros * 9 + bulk * 1.6;   // ombros alargam com armadura
+    const waist = 11 + f.core * 4 + bulk * .8;      // cintura também engrossa
+    const legW  = 9 + f.pernas * 7;
+    const armW  = 8 + f.bracos * 6 + bulk * .7;     // braços mais volumosos
+    let   pdR   = (idCorpo === "tunica_pano" ? 3.2 : 5.5)
+                + f.ombros * 4.5 + bulk * .9;       // pauldrons crescem com o bulk
+
     const stCab   = estiloDe(equipado(s, "cabeca"));
     const idCab   = equipado(s, "cabeca");
     const stCalc  = estiloDe(equipado(s, "calcas"));
@@ -416,22 +425,42 @@ const Warrior = (() => {
     // camada: capa (atrás de tudo; ausente se "Sem Capa")
     let capa = "";
     if (idCapa !== "capa_nenhuma" && stCapa) {
+      const comp = stCapa.comp || 120;
+      const larg = comp > 130 ? 21 : 17;
+      const fundo = 40 + comp;
+      const hem = stCapa.hem
+        ? `<rect x="${cx - larg - 2}" y="${fundo - 4}" width="${(larg + 2) * 2}" height="3" fill="${stCapa.hem}"/>` : "";
+      const pele = stCapa.pele
+        ? `<path d="M ${cx - 15},44 Q ${cx},39 ${cx + 15},44 L ${cx + 16},52 Q ${cx},57 ${cx - 16},52 Z"
+             fill="${stCapa.pele}" stroke="#8a744a"/>` : "";
+      const orna = stCapa.ornamento
+        ? `<circle cx="${cx}" cy="${(44 + fundo) / 2}" r="3" fill="#e0b34d" stroke="#241708"/>
+           <line x1="${cx}" y1="${44 + comp * .25}" x2="${cx}" y2="${fundo - 6}"
+                 stroke="#e0b34d" stroke-width=".8" opacity=".7"/>` : "";
       capa = `
         <path d="M ${cx - 15},45 Q ${cx},41 ${cx + 15},45
-                 L ${cx + 19},127 Q ${cx},133 ${cx - 19},127 Z"
+                 L ${cx + larg},${fundo} Q ${cx},${fundo + 6} ${cx - larg},${fundo} Z"
               fill="${stCapa.cor}" stroke="${stCapa.borda}" stroke-width="2"/>
-        <path d="M ${cx - 8},48 L ${cx - 11},122 M ${cx + 8},48 L ${cx + 11},122"
-              stroke="${stCapa.borda}" stroke-width="1" opacity=".5" fill="none"/>`;
+        <line x1="${cx - 8}" y1="48" x2="${cx - larg + 4}" y2="${fundo - 6}"
+              stroke="${stCapa.borda}" stroke-width="1" opacity=".5"/>
+        <line x1="${cx + 8}" y1="48" x2="${cx + larg - 4}" y2="${fundo - 6}"
+              stroke="${stCapa.borda}" stroke-width="1" opacity=".5"/>
+        ${hem}${pele}${orna}`;
     }
 
     // camada: pernas + grevas
     let pernas = "";
+    const bH = stBotas.h || 17;
+    const bExtra = stBotas.pesada ? 1.5 : 0;
     for (const side of [-1, 1]) {
       const lx = side < 0 ? cx - 4 - legW : cx + 4;
       pernas += `
-        <rect x="${lx}" y="93" width="${legW}" height="33" rx="2" fill="${stCalc.cor}" stroke="#171009"/>
-        <rect x="${lx - 1}" y="123" width="${legW + 2}" height="17" rx="2" fill="${stBotas.cor}" stroke="#171009"/>
-        <rect x="${lx - 1}" y="123" width="${legW + 2}" height="3" fill="#ffffff" opacity=".12"/>`;
+        <rect x="${lx}" y="93" width="${legW}" height="${126 - 93}" rx="2" fill="${stCalc.cor}" stroke="#171009"/>
+        <rect x="${lx - 1 - bExtra}" y="${140 - bH}" width="${legW + 2 + bExtra * 2}" height="${bH}" rx="2"
+              fill="${stBotas.cor}" stroke="#171009"/>
+        <rect x="${lx - 1 - bExtra}" y="${140 - bH}" width="${legW + 2 + bExtra * 2}" height="3" fill="#ffffff" opacity=".12"/>
+        ${stBotas.joelho ? `<circle cx="${lx + legW / 2}" cy="${140 - bH}" r="2.4" fill="#c9ced6" stroke="#171009"/>` : ""}
+        ${stBotas.tira ? `<rect x="${lx - 1 - bExtra}" y="${140 - bH + 5}" width="${legW + 2 + bExtra * 2}" height="2.5" fill="#97814f"/>` : ""}`;
     }
 
     // camada: torso (largura por peito/costas, cintura por core)
@@ -449,6 +478,16 @@ const Warrior = (() => {
       <rect x="${cx - waist - 3}" y="85" width="${(waist + 3) * 2}" height="7"
             fill="#4a2f18" stroke="#241708"/>
       <rect x="${cx - 3.5}" y="85.5" width="7" height="6" fill="#c9a13b" stroke="#241708"/>
+      ${stCorpo.malha ? `
+      <g opacity=".35">
+        ${[0,1,2,3].map(r => [0,1,2,3].map(c =>
+          `<circle cx="${cx - waist + 4 + c * ((waist*2-8)/3)}" cy="${48 + r * 9}" r="1.3" fill="#171009"/>`).join("")).join("")}
+      </g>` : ""}
+      ${stCorpo.saia ? `
+      <path d="M ${cx - waist - 3},91 L ${cx - waist - 7},106 L ${cx - 4},106 L ${cx - 3},92 Z"
+            fill="${stCorpo.medio}" stroke="${stCorpo.escuro}" stroke-width="1"/>
+      <path d="M ${cx + waist + 3},91 L ${cx + waist + 7},106 L ${cx + 4},106 L ${cx + 3},92 Z"
+            fill="${stCorpo.medio}" stroke="${stCorpo.escuro}" stroke-width="1"/>` : ""}
       ${stCorpo.detalhe ? `
       <path d="M ${cx - sh * .75},42.5 Q ${cx},46.5 ${cx + sh * .75},42.5"
             fill="none" stroke="${stCorpo.detalhe}" stroke-width="1.4"/>
@@ -480,41 +519,131 @@ const Warrior = (() => {
         <circle cx="${px}" cy="46" r="${pdR * .45}" fill="none" stroke="${stCorpo.escuro}" opacity=".6"/>`;
     }
 
-    // camada: cabeça + capacete/coroa
+    // camada: cabeça + capacete (cada elmo muda a silhueta da cabeça)
     let cabeca = `
       <rect x="${cx - 3}" y="31" width="6" height="7" fill="#b98d63" stroke="#171009"/>
       <circle cx="${cx}" cy="25" r="8.5" fill="#c79b6f" stroke="#171009"/>`;
-    if (idCab === "coroa_conquista") {
+
+    if (idCab === "capuz_couro") {
+      capuz = `
+        <path d="M ${cx - 11},27 Q ${cx - 12},13 ${cx},12 Q ${cx + 12},13 ${cx + 11},27
+                 L ${cx + 10},33 Q ${cx},29 ${cx - 10},33 Z"
+              fill="${stCab.cor}" stroke="#171009"/>
+        <ellipse cx="${cx}" cy="25" rx="5.5" ry="4.5" fill="${stCab.sombra}"/>
+        <circle cx="${cx - 2.5}" cy="24" r=".9" fill="#000"/>
+        <circle cx="${cx + 2.5}" cy="24" r=".9" fill="#000"/>`;
+      cabeca += capuz;
+
+    } else if (idCab === "coroa_conquista") {
       cabeca += `
         <path d="M ${cx - 9},24 L ${cx - 9},15 L ${cx - 4.5},18.5 L ${cx},13
                  L ${cx + 4.5},18.5 L ${cx + 9},15 L ${cx + 9},24 Z"
               fill="${stCab.ouro}" stroke="${stCab.escuro}" stroke-width="1"/>
         <circle cx="${cx}" cy="20.5" r="1.4" fill="#c0392b" stroke="${stCab.escuro}" stroke-width=".5"/>`;
+
+    } else if (idCab === "elmo_chifres") {
+      cabeca += `
+        <path d="M ${cx - 10},25 A 10 10 0 0 1 ${cx + 10},25 L ${cx + 10},29
+                 L ${cx - 10},29 Z" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width="1.2"/>
+        <rect x="${cx - 1}" y="26" width="2" height="6" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width=".6"/>
+        <path d="M ${cx - 9},19 Q ${cx - 16},16 ${cx - 17},8 Q ${cx - 11},12 ${cx - 7},16 Z"
+              fill="${stCab.chifre}" stroke="#171009"/>
+        <path d="M ${cx + 9},19 Q ${cx + 16},16 ${cx + 17},8 Q ${cx + 11},12 ${cx + 7},16 Z"
+              fill="${stCab.chifre}" stroke="#171009"/>`;
+
+    } else if (idCab === "elmo_fechado") {
+      cabeca += `
+        <path d="M ${cx - 10},26 A 10 10 0 0 1 ${cx + 10},26 L ${cx + 10},32
+                 L ${cx - 10},32 Z" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width="1.2"/>
+        <rect x="${cx - 10}" y="24.5" width="20" height="4" rx="1" fill="${stCab.visor}" stroke="${stCab.escuro}" stroke-width=".8"/>
+        <line x1="${cx - 6}" y1="26.5" x2="${cx + 6}" y2="26.5" stroke="#e8cd85" stroke-width=".8" opacity=".8"/>
+        <rect x="${cx - 1}" y="30" width="2" height="4" fill="${stCab.visor}"/>
+        <circle cx="${cx - 4}" cy="31.5" r=".7" fill="#171009"/>
+        <circle cx="${cx}" cy="31.5" r=".7" fill="#171009"/>
+        <circle cx="${cx + 4}" cy="31.5" r=".7" fill="#171009"/>`;
+
+    } else if (idCab === "elmo_cavaleiro") {
+      cabeca += `
+        <path d="M ${cx - 10},26 A 10 10 0 0 1 ${cx + 10},26 L ${cx + 10},33
+                 L ${cx - 10},33 Z" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width="1.2"/>
+        <path d="M ${cx - 10},20 Q ${cx},14 ${cx + 10},20 L ${cx + 10},24 L ${cx - 10},24 Z"
+              fill="${stCab.detalhe}" stroke="${stCab.escuro}" stroke-width=".9"/>
+        <rect x="${cx - 10.5}" y="23.5" width="21" height="2.4" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width=".8"/>
+        <line x1="${cx - 5}" y1="28" x2="${cx + 5}" y2="28" stroke="#171009" stroke-width="1.6"/>
+        <!-- asas laterais -->
+        <path d="M ${cx - 10},22 Q ${cx - 18},14 ${cx - 14},6 Q ${cx - 8},12 ${cx - 9},20 Z"
+              fill="${stCab.asa}" stroke="${stCab.escuro}" stroke-width=".8"/>
+        <path d="M ${cx + 10},22 Q ${cx + 18},14 ${cx + 14},6 Q ${cx + 8},12 ${cx + 9},20 Z"
+              fill="${stCab.asa}" stroke="${stCab.escuro}" stroke-width=".8"/>`;
+
     } else {
+      // elmo_ferro e elmo_simples: domo simples (cores diferentes)
       cabeca += `
         <path d="M ${cx - 10},25 A 10 10 0 0 1 ${cx + 10},25 L ${cx + 10},29
                  L ${cx - 10},29 Z" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width="1.2"/>
         <rect x="${cx - 1}" y="26" width="2" height="7" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width=".6"/>
         <path d="M ${cx - 10},25 L ${cx},17 L ${cx + 10},25" fill="none"
               stroke="${stCab.escuro}" stroke-width="1.4"/>`;
-      if (idCab === "elmo_pluma") {
-        cabeca += `
-          <path d="M ${cx},16 Q ${cx + 7},8 ${cx + 3},2" fill="none"
-                stroke="${stCab.pluma}" stroke-width="3.4" stroke-linecap="round"/>`;
-      }
     }
 
-    // camada: espada (mão direita)
+    /* camada: arma — cada tipo tem silhueta própria */
     const sx = cx + sh + armW + 9;
-    const espada = `
-      <g transform="rotate(6 ${sx} 60)">
-        <rect x="${sx - 1.6}" y="28" width="3.2" height="49" fill="${stArma.lamina}" stroke="#4a4e55" stroke-width=".7"/>
-        ${stArma.brilho ? `<line x1="${sx - .4}" y1="32" x2="${sx - .4}" y2="74" stroke="#ffffff" stroke-width=".8" opacity=".65"/>` : ""}
-        <path d="M ${sx - 1.6},28 L ${sx},21 L ${sx + 1.6},28 Z" fill="${stArma.lamina}" stroke="#4a4e55" stroke-width=".7"/>
-        <rect x="${sx - 7}" y="77" width="14" height="3.6" rx="1" fill="${stArma.guarda}" stroke="#241708"/>
-        <rect x="${sx - 2}" y="80.6" width="4" height="9" rx="1.5" fill="${stArma.punho}" stroke="#171009"/>
-        <circle cx="${sx}" cy="92" r="2.8" fill="${stArma.guarda}" stroke="#241708"/>
-      </g>`;
+    let arma = "";
+    const tipoArma = stArma.tipo || "espada";
+
+    if (tipoArma === "machado") {
+      arma = `
+        <g transform="rotate(8 ${sx} 60)">
+          <rect x="${sx - 1.4}" y="34" width="2.8" height="58" rx="1" fill="${stArma.cabo}" stroke="#171009"/>
+          <path d="M ${sx - 1.4},36 Q ${sx - 12},38 ${sx - 11},52 Q ${sx - 5},48 ${sx - 1.4},50 Z"
+                fill="${stArma.metal}" stroke="#171009"/>
+          <path d="M ${sx + 1.4},36 Q ${sx + 12},38 ${sx + 11},52 Q ${sx + 5},48 ${sx + 1.4},50 Z"
+                fill="${stArma.corte}" stroke="#171009"/>
+          <rect x="${sx - 3}" y="50" width="6" height="2.5" fill="${stArma.metal}" stroke="#171009"/>
+        </g>`;
+
+    } else if (tipoArma === "martelo") {
+      arma = `
+        <g transform="rotate(5 ${sx} 60)">
+          <rect x="${sx - 1.6}" y="36" width="3.2" height="56" rx="1" fill="${stArma.cabo}" stroke="#171009"/>
+          <rect x="${sx - 8}" y="24" width="16" height="13" rx="2"
+                fill="${stArma.metal}" stroke="#171009" stroke-width="1.1"/>
+          <rect x="${sx - 8}" y="27" width="16" height="2.4" fill="#ffffff" opacity=".18"/>
+          <rect x="${sx - 2}" y="35" width="4" height="3" fill="${stArma.metal}" stroke="#171009"/>
+        </g>`;
+
+    } else if (tipoArma === "lanca") {
+      arma = `
+        <g transform="rotate(4 ${sx} 60)">
+          <line x1="${sx}" y1="104" x2="${sx}" y2="16" stroke="${stArma.cabo}" stroke-width="2.6"/>
+          <line x1="${sx - .8}" y1="104" x2="${sx - .8}" y2="16" stroke="#171009" stroke-width=".5" opacity=".6"/>
+          <path d="M ${sx - 3.4},18 L ${sx},6 L ${sx + 3.4},18 Q ${sx},14 ${sx - 3.4},18 Z"
+                fill="${stArma.ponta}" stroke="#4a4e55"/>
+          <rect x="${sx - 4.5}" y="20" width="9" height="2.4" rx="1" fill="#97814f" stroke="#171009"/>
+        </g>`;
+
+    } else {
+      // espadas: normal, do campeão e espadão (mais larga/longa)
+      const ehEspadao = tipoArma === "espadao";
+      const bW = ehEspadao ? 5 : 3.2;
+      const bH = ehEspadao ? 58 : 49;
+      const gW = ehEspadao ? 18 : 14;
+      arma = `
+        <g transform="rotate(${ehEspadao ? 3 : 6} ${sx} 60)">
+          <rect x="${sx - bW / 2}" y="${92 - bH}" width="${bW}" height="${bH}"
+                fill="${stArma.lamina}" stroke="#4a4e55" stroke-width=".7"/>
+          <path d="M ${sx - bW / 2},${92 - bH} L ${sx},${85 - bH} L ${sx + bW / 2},${92 - bH} Z"
+                fill="${stArma.lamina}" stroke="#4a4e55" stroke-width=".7"/>
+          ${stArma.brilho ? `<line x1="${sx - .5}" y1="${96 - bH}" x2="${sx - .5}" y2="72"
+               stroke="#ffffff" stroke-width=".8" opacity=".65"/>` : ""}
+          ${ehEspadao ? `<line x1="${sx}" y1="${90 - bH}" x2="${sx}" y2="86" stroke="#4a4e55" stroke-width="1"/>` : ""}
+          <rect x="${sx - gW / 2}" y="80" width="${gW}" height="4" rx="1"
+                fill="${stArma.guarda}" stroke="#241708"/>
+          <rect x="${sx - 2.2}" y="84" width="4.4" height="10" rx="1.5"
+                fill="${stArma.punho}" stroke="#171009"/>
+          <circle cx="${sx}" cy="97" r="3" fill="${stArma.guarda}" stroke="#241708"/>
+        </g>`;
+    }
 
     return `
     <svg class="warrior-svg" viewBox="0 0 120 170" role="img"
@@ -531,7 +660,7 @@ const Warrior = (() => {
       ${torso}
       ${bracos}
       ${cabeca}
-      ${espada}
+      ${arma}
     </svg>`;
   }
 
