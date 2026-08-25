@@ -1018,16 +1018,120 @@ button {
 .evol-item:hover { border-color: var(--gold); filter:brightness(1.15); }
 .evol-svg { width:100%; height:auto; display:block; }
 
-/* ================= FORJA — loja de cosméticos ============= */
-.forja-saldo {
-  background: linear-gradient(180deg, #33220d, #1c1105);
-  border-color: var(--gold-dim);
+/* ================= FORJA — forja com prévia ao vivo ======= */
+.forja-stage {
+  display: flex;
+  gap: .9rem;
+  align-items: flex-start;
+  background:
+    radial-gradient(80% 50% at 85% 15%, rgba(207,114,39,.08) 0%, transparent 55%),
+    linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 90%, #1a0f05 100%);
 }
-.forja-saldo .cs-row {
+.forja-itens { flex: 1; min-width: 0; }
+.forja-guerreiro {
+  flex: 0 0 176px;
+  position: sticky;
+  top: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+}
+.forja-saldo {
   justify-content: center;
-  font-size: 1.35rem;
+  font-size: 1.25rem;
+  padding: .45rem .6rem;
+  margin-bottom: .6rem;
+  border: 1px solid var(--gold-dim);
+  background: linear-gradient(180deg, #33220d, #1c1105);
 }
 .forja-saldo .cs-val { color: var(--gold-bright); }
+
+.forja-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .35rem;
+  margin-bottom: .6rem;
+}
+.faba {
+  padding: .45rem .4rem;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: .66rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: #17100a;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+.faba.on {
+  color: var(--gold-bright);
+  border-color: var(--gold);
+  background: linear-gradient(180deg, #33220d, #241708);
+  box-shadow: inset 0 1px 0 rgba(232,205,133,.12);
+}
+.shop-item.fi { cursor: pointer; }
+.shop-item.fi.sel {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px var(--gold), 0 0 10px rgba(184,146,58,.22);
+}
+.shop-item.eq { border-left-color: var(--xp); }
+.si-act { flex-shrink: 0; display:flex; align-items:center; }
+.fi-btn { width: auto !important; padding: .42rem .85rem !important; font-size: .68rem !important; }
+
+.rar-badge {
+  font-family: var(--font-pixel);
+  font-size: .82rem;
+  border: 1px solid;
+  border-radius: 2px;
+  padding: 0 .28rem;
+  margin-right: .3rem;
+}
+
+.cmp-box {
+  width: 100%;
+  padding: .55rem .6rem;
+  background: #17100a;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  text-align: center;
+}
+.cmp-box.dica {
+  border-style: dashed;
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-size: .8rem;
+  line-height: 1.4;
+}
+.cmp-titulo {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: .82rem;
+  color: var(--gold-bright);
+  margin-bottom: .3rem;
+}
+.cmp-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: .4rem;
+  font-family: var(--font-pixel);
+  font-size: .92rem;
+  padding: .08rem 0;
+  color: var(--text);
+}
+.cmp-linha .k { font-size: .7rem; letter-spacing: .12em; color: var(--bronze); align-self:center; }
+.cmp-linha.novo span:last-child { color: var(--xp); }
+.forja-preview { box-shadow: inset 0 0 18px rgba(0,0,0,.75), inset 0 0 0 2px var(--gold), 0 0 16px rgba(207,114,39,.25); }
+
+@media (max-width: 560px) {
+  .forja-stage { flex-direction: column-reverse; }
+  .forja-guerreiro { position: static; flex-basis: auto; width: 100%; }
+  .forja-preview { max-width: 200px; margin: 0 auto; }
+  .cmp-box { max-width: 250px; margin: 0 auto; }
+  .forja-tabs { grid-template-columns: repeat(4, 1fr); gap:.3rem; }
+  .faba { font-size:.56rem; padding:.4rem .2rem; letter-spacing:0; }
+}
 
 .shop-item {
   display:flex;
