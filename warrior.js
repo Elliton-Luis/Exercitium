@@ -11,72 +11,177 @@ const Warrior = (() => {
 
   /* ---- catálogo de cosméticos por slot ----
      origem: {tipo:"padrao"} | {tipo:"loja",preco[,nivel]}
-             | {tipo:"nivel"|"recordes"|"treinos"|"volume", qtd/nivel/kg} */
+             | {tipo:"nivel"|"recordes"|"treinos"|"volume", qtd/nivel/kg}
+     raridade: comum | incomum | raro | epico | lendario            */
+  const RARIDADES = {
+    comum:    { nome: "Comum",    cor: "#97814f" },
+    incomum:  { nome: "Incomum",  cor: "#6fa84a" },
+    raro:     { nome: "Raro",     cor: "#5b8fb8" },
+    epico:    { nome: "Épico",    cor: "#9a68c0" },
+    lendario: { nome: "Lendário", cor: "#d9822b" }
+  };
+
   const SLOTS = {
-    cabeca:    { icone: "🪖", padrao: "elmo_ferro" },
-    corpo:     { icone: "🛡", padrao: "armadura_ferro" },
-    capa:      { icone: "🧣", padrao: "capa_nenhuma" },
-    luvas:     { icone: "🧤", padrao: "luvas_couro" },
-    calcas:    { icone: "👖", padrao: "calcas_couro" },
-    botas:     { icone: "👢", padrao: "botas_couro" },
-    acessorio: { icone: "📿", padrao: "colar_pano" },
-    arma:      { icone: "⚔", padrao: "espada_ferro" }
+    cabeca:    { icone: "🪖", plural: "Capacetes",  padrao: "elmo_ferro" },
+    corpo:     { icone: "🛡", plural: "Armaduras",  padrao: "tunica_pano" },
+    capa:      { icone: "🧣", plural: "Capas",      padrao: "capa_nenhuma" },
+    luvas:     { icone: "🧤", plural: "Luvas",      padrao: "luvas_couro" },
+    calcas:    { icone: "👖", plural: "Calças",     padrao: "calcas_couro" },
+    botas:     { icone: "👢", plural: "Botas",      padrao: "botas_couro" },
+    acessorio: { icone: "📿", plural: "Acessórios", padrao: "colar_pano" },
+    arma:      { icone: "⚔", plural: "Armas",       padrao: "espada_ferro" }
   };
 
   const COSMETICOS = [
     // cabeça
-    { id: "elmo_ferro",       slot: "cabeca", nome: "Elmo de Ferro",      origem: { tipo: "padrao" } },
-    { id: "elmo_pluma",       slot: "cabeca", nome: "Elmo da Pluma",      origem: { tipo: "loja", preco: 150 } },
-    { id: "coroa_conquista",  slot: "cabeca", nome: "Coroa da Vitória",   origem: { tipo: "recordes", qtd: 20 } },
+    { id: "elmo_ferro",      slot: "cabeca", nome: "Elmo de Ferro",     raridade: "comum",
+      origem: { tipo: "padrao" } },
+    { id: "elmo_simples",    slot: "cabeca", nome: "Elmo Simples",      raridade: "comum",
+      origem: { tipo: "loja", preco: 80 } },
+    { id: "capuz_couro",     slot: "cabeca", nome: "Capuz de Couro",    raridade: "incomum",
+      origem: { tipo: "loja", preco: 120 } },
+    { id: "elmo_chifres",    slot: "cabeca", nome: "Elmo com Chifres",  raridade: "raro",
+      origem: { tipo: "loja", preco: 350, nivel: 8 } },
+    { id: "elmo_fechado",    slot: "cabeca", nome: "Elmo Fechado",      raridade: "raro",
+      origem: { tipo: "loja", preco: 400, nivel: 10 } },
+    { id: "elmo_cavaleiro",  slot: "cabeca", nome: "Elmo do Cavaleiro", raridade: "epico",
+      origem: { tipo: "loja", preco: 900, nivel: 15 } },
+    { id: "coroa_conquista", slot: "cabeca", nome: "Coroa da Vitória",  raridade: "lendario",
+      origem: { tipo: "recordes", qtd: 20 } },
     // corpo
-    { id: "armadura_ferro",   slot: "corpo",  nome: "Armadura de Ferro",  origem: { tipo: "padrao" } },
-    { id: "armadura_forja",   slot: "corpo",  nome: "Armadura da Forja",  origem: { tipo: "volume", kg: 50000 } },
-    { id: "armadura_campeao", slot: "corpo",  nome: "Armadura do Campeão",origem: { tipo: "recordes", qtd: 100 } },
+    { id: "tunica_pano",     slot: "corpo",  nome: "Túnica de Pano",    raridade: "comum",
+      origem: { tipo: "padrao" } },
+    { id: "armadura_couro",  slot: "corpo",  nome: "Armadura de Couro", raridade: "incomum",
+      origem: { tipo: "loja", preco: 200 } },
+    { id: "armadura_ferro",  slot: "corpo",  nome: "Armadura de Ferro", raridade: "comum",
+      origem: { tipo: "loja", preco: 150 } },
+    { id: "cota_malha",      slot: "corpo",  nome: "Cota de Malha",     raridade: "incomum",
+      origem: { tipo: "loja", preco: 300 } },
+    { id: "armadura_pesada", slot: "corpo",  nome: "Armadura Pesada",   raridade: "raro",
+      origem: { tipo: "loja", preco: 600, nivel: 12 } },
+    { id: "armadura_negra",  slot: "corpo",  nome: "Armadura Negra",    raridade: "epico",
+      origem: { tipo: "recordes", qtd: 100 } },
+    { id: "armadura_forja",  slot: "corpo",  nome: "Armadura da Forja", raridade: "epico",
+      origem: { tipo: "volume", kg: 50000 } },
+    { id: "armadura_dourada",slot: "corpo",  nome: "Armadura Dourada",  raridade: "lendario",
+      origem: { tipo: "loja", preco: 2000, nivel: 20 } },
     // capa
-    { id: "capa_nenhuma",     slot: "capa",   nome: "Sem Capa",           origem: { tipo: "padrao" } },
-    { id: "capa_viajante",    slot: "capa",   nome: "Capa do Viajante",   origem: { tipo: "loja", preco: 100 } },
-    { id: "capa_guerreiro",   slot: "capa",   nome: "Capa do Guerreiro",  origem: { tipo: "loja", preco: 500, nivel: 10 } },
-    { id: "capa_campeao",     slot: "capa",   nome: "Capa do Campeão",    origem: { tipo: "loja", preco: 1000, nivel: 15 } },
-    { id: "manto_veterano",   slot: "capa",   nome: "Manto do Veterano",  origem: { tipo: "treinos", qtd: 50 } },
+    { id: "capa_nenhuma",    slot: "capa",   nome: "Sem Capa",          raridade: "comum",
+      origem: { tipo: "padrao" } },
+    { id: "capa_viajante",   slot: "capa",   nome: "Capa do Viajante",  raridade: "comum",
+      origem: { tipo: "loja", preco: 100 } },
+    { id: "capa_branca",     slot: "capa",   nome: "Capa Branca",       raridade: "incomum",
+      origem: { tipo: "loja", preco: 450 } },
+    { id: "capa_guerreiro",  slot: "capa",   nome: "Capa do Guerreiro", raridade: "incomum",
+      origem: { tipo: "loja", preco: 500, nivel: 10 } },
+    { id: "capa_sombria",    slot: "capa",   nome: "Capa Sombria",      raridade: "raro",
+      origem: { tipo: "loja", preco: 700, nivel: 12 } },
+    { id: "capa_campeao",    slot: "capa",   nome: "Capa do Campeão",   raridade: "raro",
+      origem: { tipo: "loja", preco: 1000, nivel: 15 } },
+    { id: "capa_ornamentada",slot: "capa",   nome: "Capa Ornamentada",  raridade: "epico",
+      origem: { tipo: "loja", preco: 1200, nivel: 18 } },
+    { id: "manto_real",      slot: "capa",   nome: "Manto Real",        raridade: "lendario",
+      origem: { tipo: "loja", preco: 1800, nivel: 25 } },
     // luvas
-    { id: "luvas_couro",      slot: "luvas",  nome: "Luvas de Couro",     origem: { tipo: "padrao" } },
-    { id: "manoplas_forja",   slot: "luvas",  nome: "Manoplas da Forja",  origem: { tipo: "loja", preco: 120 } },
+    { id: "luvas_couro",     slot: "luvas",  nome: "Luvas de Couro",    raridade: "comum",
+      origem: { tipo: "padrao" } },
+    { id: "manoplas_forja",  slot: "luvas",  nome: "Manoplas da Forja", raridade: "incomum",
+      origem: { tipo: "loja", preco: 120 } },
+    { id: "manoplas_aco",    slot: "luvas",  nome: "Manoplas de Aço",   raridade: "raro",
+      origem: { tipo: "loja", preco: 300, nivel: 10 } },
     // calças
-    { id: "calcas_couro",     slot: "calcas", nome: "Calça de Couro",     origem: { tipo: "padrao" } },
-    { id: "calcas_aco",       slot: "calcas", nome: "Calça de Aço",       origem: { tipo: "loja", preco: 180 } },
+    { id: "calcas_couro",    slot: "calcas", nome: "Calça de Couro",    raridade: "comum",
+      origem: { tipo: "padrao" } },
+    { id: "calcas_aco",      slot: "calcas", nome: "Calça de Aço",      raridade: "incomum",
+      origem: { tipo: "loja", preco: 180 } },
+    { id: "calca_pesada",    slot: "calcas", nome: "Calça Pesada",      raridade: "raro",
+      origem: { tipo: "loja", preco: 350, nivel: 10 } },
     // botas
-    { id: "botas_couro",      slot: "botas",  nome: "Botas de Couro",     origem: { tipo: "padrao" } },
-    { id: "coturnos_forja",   slot: "botas",  nome: "Coturnos da Forja",  origem: { tipo: "loja", preco: 160 } },
+    { id: "botas_couro",     slot: "botas",  nome: "Botas de Couro",    raridade: "comum",
+      origem: { tipo: "padrao" } },
+    { id: "botas_viajante",  slot: "botas",  nome: "Botas do Viajante", raridade: "comum",
+      origem: { tipo: "loja", preco: 90 } },
+    { id: "coturnos_forja",  slot: "botas",  nome: "Coturnos da Forja", raridade: "incomum",
+      origem: { tipo: "loja", preco: 160 } },
+    { id: "grevas_aco",      slot: "botas",  nome: "Grevas de Aço",     raridade: "raro",
+      origem: { tipo: "loja", preco: 320, nivel: 10 } },
+    { id: "botas_pesadas",   slot: "botas",  nome: "Botas Pesadas",     raridade: "raro",
+      origem: { tipo: "loja", preco: 420, nivel: 12 } },
     // acessório
-    { id: "colar_pano",       slot: "acessorio", nome: "Cordão de Pano",  origem: { tipo: "padrao" } },
-    { id: "amuleto_ouro",     slot: "acessorio", nome: "Amuleto de Ouro", origem: { tipo: "loja", preco: 250 } },
+    { id: "colar_pano",      slot: "acessorio", nome: "Cordão de Pano", raridade: "comum",
+      origem: { tipo: "padrao" } },
+    { id: "amuleto_ouro",    slot: "acessorio", nome: "Amuleto de Ouro", raridade: "incomum",
+      origem: { tipo: "loja", preco: 250 } },
+    { id: "amuleto_runico",  slot: "acessorio", nome: "Amuleto Rúnico", raridade: "raro",
+      origem: { tipo: "loja", preco: 500, nivel: 12 } },
+    { id: "talisma_forja",   slot: "acessorio", nome: "Talismã da Forja", raridade: "epico",
+      origem: { tipo: "treinos", qtd: 100 } },
     // arma
-    { id: "espada_ferro",     slot: "arma",   nome: "Espada de Ferro",    origem: { tipo: "padrao" } },
-    { id: "espada_campeao",   slot: "arma",   nome: "Espada do Campeão",  origem: { tipo: "loja", preco: 800, nivel: 12 } }
+    { id: "espada_ferro",    slot: "arma",   nome: "Espada de Ferro",     raridade: "comum",
+      origem: { tipo: "padrao" } },
+    { id: "machado_batalha", slot: "arma",   nome: "Machado de Batalha",  raridade: "incomum",
+      origem: { tipo: "loja", preco: 220 } },
+    { id: "lanca_caca",      slot: "arma",   nome: "Lança de Caça",       raridade: "incomum",
+      origem: { tipo: "loja", preco: 260 } },
+    { id: "martelo_forja",   slot: "arma",   nome: "Martelo da Forja",    raridade: "raro",
+      origem: { tipo: "loja", preco: 380, nivel: 8 } },
+    { id: "espadao_guerreiro", slot: "arma", nome: "Espadão do Guerreiro", raridade: "raro",
+      origem: { tipo: "loja", preco: 550, nivel: 12 } },
+    { id: "espada_campeao",  slot: "arma",   nome: "Espada do Campeão",   raridade: "epico",
+      origem: { tipo: "loja", preco: 800, nivel: 12 } }
   ];
 
   /* paletas/detalhes de desenho por item */
   const ESTILOS = {
+    // cabeça
     elmo_ferro:        { metal: "#8a744a", escuro: "#42351c" },
-    elmo_pluma:        { metal: "#8a744a", escuro: "#42351c", pluma: "#a83a2a" },
+    elmo_simples:      { metal: "#9aa2ab", escuro: "#4a4e55" },
+    capuz_couro:       { cor: "#4a2f18", sombra: "#241708" },
+    elmo_chifres:      { metal: "#6d7480", escuro: "#3a3f47", chifre: "#d8cbb0" },
+    elmo_fechado:      { metal: "#707682", escuro: "#33373d", visor: "#171009" },
+    elmo_cavaleiro:    { metal: "#aab1bc", escuro: "#33373d", detalhe: "#e0b34d", asa: "#e8cd85" },
     coroa_conquista:   { ouro: "#d9b345", escuro: "#6b5210" },
-    armadura_ferro:    { claro: "#99a0ac", medio: "#6d7480", escuro: "#3a3f47" },
-    armadura_forja:    { claro: "#c09a52", medio: "#86622a", escuro: "#42300f", detalhe: "#e0b34d" },
-    armadura_campeao:  { claro: "#dde2e9", medio: "#97a0ad", escuro: "#2f333b", detalhe: "#e0b34d" },
-    capa_viajante:     { cor: "#6b4a2a", borda: "#33200f" },
-    capa_guerreiro:    { cor: "#7c1f14", borda: "#380d06" },
-    capa_campeao:      { cor: "#26436b", borda: "#101f38" },
-    manto_veterano:    { cor: "#31502b", borda: "#16260f" },
+    // corpo (bulk = impacto na silhueta; saia/malha/detalhe = extras)
+    tunica_pano:       { claro: "#8a6f4a", medio: "#6b543a", escuro: "#40301e", bulk: 0 },
+    armadura_couro:    { claro: "#7c5a34", medio: "#5c4224", escuro: "#33200f", bulk: .8 },
+    cota_malha:        { claro: "#8d939e", medio: "#666c76", escuro: "#363a41", malha: true, bulk: 1.2 },
+    armadura_ferro:    { claro: "#99a0ac", medio: "#6d7480", escuro: "#3a3f47", bulk: 1.5 },
+    armadura_pesada:   { claro: "#a8afb9", medio: "#757d89", escuro: "#383c44", bulk: 3, saia: true },
+    armadura_negra:    { claro: "#3d4048", medio: "#26282e", escuro: "#101114", detalhe: "#c0392b", bulk: 2.2 },
+    armadura_forja:    { claro: "#c09a52", medio: "#86622a", escuro: "#42300f", detalhe: "#e0b34d", bulk: 2 },
+    armadura_dourada:  { claro: "#eccf78", medio: "#c19a3c", escuro: "#7a5c14", detalhe: "#fff0c4", bulk: 2.2 },
+    // capa (comp = comprimento; hem/pele/ornamento = extras)
+    capa_viajante:     { cor: "#6b4a2a", borda: "#33200f", comp: 112 },
+    capa_branca:       { cor: "#ddd2b5", borda: "#8a744a", comp: 120 },
+    capa_guerreiro:    { cor: "#7c1f14", borda: "#380d06", comp: 126 },
+    capa_sombria:      { cor: "#23202a", borda: "#0d0c11", comp: 136 },
+    capa_campeao:      { cor: "#26436b", borda: "#101f38", comp: 128, hem: "#e0b34d" },
+    capa_ornamentada:  { cor: "#2e4a2e", borda: "#14260f", comp: 132, hem: "#e0b34d", ornamento: true },
+    manto_real:        { cor: "#5c2015", borda: "#2c0e06", comp: 142, pele: "#e3d0a0", hem: "#e0b34d" },
+    // luvas / calças / botas
     luvas_couro:       { cor: "#4a2f18" },
     manoplas_forja:    { cor: "#565c66" },
+    manoplas_aco:      { cor: "#99a0ac" },
     calcas_couro:      { cor: "#43301c" },
     calcas_aco:        { cor: "#565c66" },
-    botas_couro:       { cor: "#33200f" },
-    coturnos_forja:    { cor: "#1c130a" },
-    amuleto_pano:      { cordao: "#97814f" },
+    calca_pesada:      { cor: "#3d3a35", pesada: true },
+    botas_couro:       { cor: "#33200f", h: 17 },
+    botas_viajante:    { cor: "#55402a", h: 14 },
+    coturnos_forja:    { cor: "#1c130a", h: 19, tira: true },
+    grevas_aco:        { cor: "#757d89", h: 20, joelho: true },
+    botas_pesadas:     { cor: "#241708", h: 22, pesada: true },
+    // acessório
+    colar_pano:        { cordao: "#97814f" },
     amuleto_ouro:      { cordao: "#c9a13b", pedra: "#c0392b" },
-    espada_ferro:      { lamina: "#c9ced6", guarda: "#c9a13b", punho: "#3a2412" },
-    espada_campeao:    { lamina: "#eef3fa", guarda: "#e0b34d", punho: "#5c2015", brilho: true }
+    amuleto_runico:    { cordao: "#8d939e", pedra: "#26436b", runico: true },
+    talisma_forja:     { cordao: "#c09a52", pedra: "#cf7227", brilho: true },
+    // armas (tipo define a silhueta)
+    espada_ferro:      { tipo: "espada", lamina: "#c9ced6", guarda: "#c9a13b", punho: "#3a2412" },
+    espada_campeao:    { tipo: "espada", lamina: "#eef3fa", guarda: "#e0b34d", punho: "#5c2015", brilho: true },
+    espadao_guerreiro: { tipo: "espadao", lamina: "#b9c2cc", guarda: "#8a6a35", punho: "#2c1d10" },
+    machado_batalha:   { tipo: "machado", cabo: "#5c4224", metal: "#9aa2ab", corte: "#d6dbe2" },
+    martelo_forja:     { tipo: "martelo", cabo: "#4a3520", metal: "#757d89" },
+    lanca_caca:        { tipo: "lanca", cabo: "#6b4a2a", ponta: "#c9ced6" }
   };
 
   const PADRAO = {};
@@ -85,8 +190,10 @@ const Warrior = (() => {
   const porId = id => COSMETICOS.find(c => c.id === id) || null;
   const estiloDe = id => ESTILOS[id] || null;
   function equipado(s, slot) {
+    // ids de versões antigas que não existem mais caem no padrão do slot
     const map = s.personagem.equipamento || {};
-    return map[slot] || SLOTS[slot].padrao;
+    const id = map[slot] || SLOTS[slot].padrao;
+    return porId(id) ? id : SLOTS[slot].padrao;
   }
 
   /* ---- posse e requisitos ---- */
@@ -567,5 +674,5 @@ const Warrior = (() => {
   return { svg, mapaHTML, balancoHTML, mapaPct, balanco,
            rankGuerreiro, gruposMacroPontos, nivelDePontos, calcMusculos,
            fatores, NIVEIS_MUSCULARES, COSMETICOS, SLOTS, PADRAO,
-           porId, possui, statusItem, reqTexto };
+           RARIDADES, porId, estiloDe, possui, statusItem, reqTexto };
 })();
