@@ -357,6 +357,20 @@ const UI = {
     const stats = this.statsGlobais();
     const need = Game.xpNecessario(p.nivel);
 
+    // tendência de volume: mês atual vs mês anterior
+    const meses = Stats.volumePorPeriodo(State.s, "mes", 2);
+    let volLinha = "";
+    if (meses.length && meses[meses.length - 1].valor > 0) {
+      const atual = meses[meses.length - 1].valor;
+      const anterior = meses.length > 1 ? meses[0].valor : 0;
+      if (anterior > 0) {
+        const delta = Math.round((atual - anterior) / anterior * 100);
+        volLinha = `<div class="cs-row"><span>📈 Volume este mês</span><span class="cs-val">${fmtNum(atual)} kg (${delta >= 0 ? "+" : ""}${delta}%)</span></div>`;
+      } else {
+        volLinha = `<div class="cs-row"><span>📈 Volume este mês</span><span class="cs-val">${fmtNum(atual)} kg</span></div>`;
+      }
+    }
+
     scr.innerHTML = `
       <div class="tavern-banner">
         <h1 class="game-title">EXERCITIUM</h1>
@@ -366,25 +380,31 @@ const UI = {
       ${this._htmlRecuperacao()}
 
       <div class="parchment character-summary">
-        <div class="cs-name">${escapar(p.nome)}</div>
-        <div class="cs-row"><span>Nível</span><span class="cs-val">${p.nivel}</span></div>
-        <div class="cs-row"><span>Ouro</span><span class="cs-val">🪙 ${fmtNum(p.ouro)}</span></div>
-        <div class="cs-row"><span>Streak</span><span class="cs-val">🔥 ${st.atual} dias</span></div>
-        <div class="cs-row"><span>Treinos</span><span class="cs-val">⚒ ${stats.numTreinos}</span></div>
-        <div class="cs-row"><span>Recordes quebrados</span><span class="cs-val">💥 ${stats.recordes}</span></div>
-        <div class="xpbar big"><div class="xpbar-fill" style="width:${Math.min(100, p.xp/need*100)}%"></div><span class="xpbar-text">NV ${p.nivel} · ${fmtNum(p.xp)}/${fmtNum(need)} XP</span></div>
+        <div class="sum-top">
+          <div class="sum-warrior" title="Veja a ficha completa em Personagem">${Warrior.svg(State.s)}</div>
+          <div class="sum-id">
+            <div class="cs-name">${escapar(p.nome)}</div>
+            <div class="char-class">${this.tituloPorNivel(p.nivel)}</div>
+          </div>
+        </div>
+        <div class="xpbar big"><div class="xpbar-fill" style="width:${Math.min(100, p.xp/need*100)}%"></div><span class="xpbar-text">Nível ${p.nivel} · ${fmtNum(p.xp)}/${fmtNum(need)} XP</span></div>
+        <div class="cs-row"><span>🪙 Ouro</span><span class="cs-val">🪙 ${fmtNum(p.ouro)}</span></div>
+        <div class="cs-row"><span>🔥 Streak</span><span class="cs-val">${st.atual} dias</span></div>
+        <div class="cs-row"><span>⚔ Treinos</span><span class="cs-val">${stats.numTreinos}</span></div>
+        <div class="cs-row"><span>🏆 Recordes</span><span class="cs-val">${stats.recordes}</span></div>
+        ${volLinha}
       </div>
 
       <button class="btn btn-primary btn-big" data-action="start-workout">⚔ INICIAR TREINO</button>
 
       <nav class="menu">
         <button class="menu-item" data-action="goto-exercises"><span class="mi-icon">📜</span><span>Exercícios</span></button>
-        <button class="menu-item" data-action="goto-records"><span class="mi-icon">🏆</span><span>Recordes</span></button>
+        <button class="menu-item" data-action="goto-stats"><span class="mi-icon">📈</span><span>Evolução</span></button>
         <button class="menu-item" data-action="goto-character"><span class="mi-icon">👤</span><span>Personagem</span></button>
+        <button class="menu-item" data-action="goto-forja"><span class="mi-icon">🏪</span><span>Forja</span></button>
+        <button class="menu-item" data-action="goto-records"><span class="mi-icon">🏆</span><span>Recordes</span></button>
         <button class="menu-item" data-action="goto-achievements"><span class="mi-icon">🎖</span><span>Conquistas</span></button>
         <button class="menu-item" data-action="goto-history"><span class="mi-icon">📖</span><span>Histórico</span></button>
-        <button class="menu-item" data-action="goto-stats"><span class="mi-icon">📈</span><span>Evolução</span></button>
-        <button class="menu-item" data-action="goto-forja"><span class="mi-icon">🏪</span><span>Forja</span></button>
         <button class="menu-item" data-action="goto-saves"><span class="mi-icon">💾</span><span>Saves</span></button>
       </nav>
     `;
