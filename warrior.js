@@ -82,6 +82,8 @@ const Warrior = (() => {
       origem: { tipo: "loja", preco: 1200, nivel: 18 } },
     { id: "manto_real",      slot: "capa",   nome: "Manto Real",        raridade: "lendario",
       origem: { tipo: "loja", preco: 1800, nivel: 25 } },
+    { id: "manto_veterano",  slot: "capa",   nome: "Manto do Veterano", raridade: "epico",
+      origem: { tipo: "treinos", qtd: 50 } },
     // luvas
     { id: "luvas_couro",     slot: "luvas",  nome: "Luvas de Couro",    raridade: "comum",
       origem: { tipo: "padrao" } },
@@ -158,6 +160,7 @@ const Warrior = (() => {
     capa_campeao:      { cor: "#26436b", borda: "#101f38", comp: 128, hem: "#e0b34d" },
     capa_ornamentada:  { cor: "#2e4a2e", borda: "#14260f", comp: 132, hem: "#e0b34d", ornamento: true },
     manto_real:        { cor: "#5c2015", borda: "#2c0e06", comp: 142, pele: "#e3d0a0", hem: "#e0b34d" },
+    manto_veterano:    { cor: "#31502b", borda: "#16260f", comp: 138, hem: "#e0b34d" },
     // luvas / calças / botas
     luvas_couro:       { cor: "#4a2f18" },
     manoplas_forja:    { cor: "#565c66" },
