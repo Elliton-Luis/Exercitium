@@ -6,7 +6,9 @@ const UI = {
 
   /* ================= INICIALIZAÇÃO / ROTEAMENTO ================= */
   telaAtual: "tavern",
-  sessao: null,     // sessão de treino em andamento
+  sessao: null,
+  _forjaAba: "cabeca",     // aba ativa na Forja
+  _forjaPrevia: null,      // prévia de equipamento {slot,id}     // sessão de treino em andamento
   _pickCtx: null,   // contexto de seleção de exercício ({modo:"rotina"|"livre"})
   _rotEdit: null,   // rascunho do editor de rotina
   _finalizando: false,          // proteção contra finalização dupla
@@ -1359,7 +1361,7 @@ const UI = {
   _forjaRow(s, item) {
     const st = Warrior.statusItem(s, item);
     const icone = Warrior.SLOTS[item.slot].icone;
-    const rar = RARIDADES[item.raridade];
+    const rar = Warrior.RARIDADES[item.raridade];
     const selecionado = this._forjaPrevia && this._forjaPrevia.id === item.id;
     const slotEquipado = (s.personagem.equipamento || {})[item.slot] === item.id;
 
@@ -1425,7 +1427,18 @@ const UI = {
           </div>
 
           <div class="forja-lista">
-            ${itensAba.map(item => this._forjaRow(s, item)).join("")}
+            ${(() => {
+              const seus = itensAba.filter(c => Warrior.possui(s, c.id));
+              const vitrine = itensAba.filter(c => !Warrior.possui(s, c.id));
+              let out = "";
+              if (seus.length)
+                out += `<div class="forja-grupo">Seus Itens</div>` +
+                       seus.map(item => this._forjaRow(s, item)).join("");
+              if (vitrine.length)
+                out += `<div class="forja-grupo">Ainda Não Possui</div>` +
+                       vitrine.map(item => this._forjaRow(s, item)).join("");
+              return out;
+            })()}
           </div>
         </div>
 

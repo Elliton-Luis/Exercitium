@@ -1089,6 +1089,18 @@ button {
   margin-right: .3rem;
 }
 
+.forja-lista { display:flex; flex-direction:column; }
+.forja-grupo {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: .68rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--bronze);
+  margin: .55rem 0 .35rem;
+}
+.forja-lista .forja-grupo:first-child { margin-top: 0; }
+
 .cmp-box {
   width: 100%;
   padding: .55rem .6rem;
