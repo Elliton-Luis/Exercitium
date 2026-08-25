@@ -157,7 +157,21 @@ const UI = {
     "goto-history":     function () { this.showScreen("history"); },
     "goto-saves":       function () { this.showScreen("saves"); },
     "goto-stats":       function () { this.showScreen("stats"); },
-    "goto-forja":       function () { this.showScreen("forja"); },
+    "goto-forja":       function () { this._forjaPrevia = null; this.showScreen("forja"); },
+    "forja-aba":        function (slot) { this._forjaAba = slot; this._forjaPrevia = null; this.render_forja(document.getElementById("screen-forja")); },
+    "select-item":      function (id) {
+      const item = Warrior.porId(id);
+      if (!item) return;
+      const st = Warrior.statusItem(State.s, item);
+      if (st.acao === "bloqueado" || st.acao === "caro") {
+        this.toast(`🔒 ${st.motivo}`);
+        return;
+      }
+      this._forjaPrevia = { slot: item.slot, id };
+      this.render_forja(document.getElementById("screen-forja"));
+    },
+    "confirm-preview":  function () { this.confirmarPrevia(); },
+    "cancel-preview":   function () { this.cancelarPrevia(); },
     "buy-item":         function (id) { this.comprarItem(id); },
     "equip-item":       function (id) {
       const item = Warrior.porId(id);
@@ -1307,7 +1321,8 @@ const UI = {
   },
 
   /* ================= PERSONAGEM ================= */
-  /* ================= FORJA (loja de cosméticos) ================= */
+  /* ================= FORJA — loja com prévia ao vivo ============= */
+
   comprarItem(id) {
     const item = Warrior.porId(id);
     if (!item) return;
@@ -1315,6 +1330,8 @@ const UI = {
     if (st.acao !== "comprar") return;
     if (State.comprarCosmetico(id, item.origem.preco)) {
       this.toast(`🛒 ${escapar(item.nome)} adquirido!`);
+      // após comprar, já entra em prévia para equipar de imediato
+      this._forjaPrevia = { slot: item.slot, id };
       this.updateHUD();
       this.render_forja(document.getElementById("screen-forja"));
     } else {
@@ -1322,56 +1339,111 @@ const UI = {
     }
   },
 
+  /* confirma a prévia: torna permanente */
+  confirmarPrevia() {
+    const pv = this._forjaPrevia;
+    if (!pv) return;
+    State.equiparCosmetico(pv.slot, pv.id);
+    const nome = Warrior.porId(pv.id)?.nome || "";
+    this._forjaPrevia = null;
+    this.toast(`⚔ ${escapar(nome)} equipado!`);
+    this.render_forja(document.getElementById("screen-forja"));
+  },
+
+  cancelarPrevia() {
+    this._forjaPrevia = null;
+    this.render_forja(document.getElementById("screen-forja"));
+  },
+
+  /* linha da lista: selecionável para prévia + botão de ação */
   _forjaRow(s, item) {
     const st = Warrior.statusItem(s, item);
     const icone = Warrior.SLOTS[item.slot].icone;
+    const rar = RARIDADES[item.raridade];
+    const selecionado = this._forjaPrevia && this._forjaPrevia.id === item.id;
+    const slotEquipado = (s.personagem.equipamento || {})[item.slot] === item.id;
 
     let botao = "";
-    if (st.acao === "equipar")
-      botao = `<button class="btn" data-action="equip-item" data-arg="${item.id}" style="width:auto;padding:.45rem .9rem;font-size:.72rem;">EQUIPAR</button>`;
-    else if (st.acao === "comprar")
-      botao = `<button class="btn btn-primary" data-action="buy-item" data-arg="${item.id}" style="width:auto;padding:.45rem .9rem;font-size:.72rem;">COMPRAR</button>`;
+    if (st.acao === "comprar")
+      botao = `<button class="btn btn-primary fi-btn" data-action="buy-item" data-arg="${item.id}">COMPRAR</button>`;
+    else if (st.acao === "equipar")
+      botao = `<button class="btn fi-btn" data-action="select-item" data-arg="${item.id}">EQUIPAR</button>`;
     else
       botao = `<span class="si-estado${st.acao === "equipado" ? " on" : ""}">${st.acao === "equipado" ? "✔ EQUIPADO" : st.motivo}</span>`;
 
     return `
-      <div class="shop-item">
+      <div class="shop-item fi${selecionado ? " sel" : ""}${slotEquipado ? " eq" : ""}"
+           data-action="select-item" data-arg="${item.id}">
         <span class="si-icon">${icone}</span>
         <div class="si-info">
           <div class="si-nome">${escapar(item.nome)}</div>
-          <div class="si-motivo">${st.motivo}</div>
+          <div class="si-motivo">
+            <span class="rar-badge" style="color:${rar.cor};border-color:${rar.cor}">${rar.nome}</span>
+            ${st.motivo}
+          </div>
         </div>
-        ${botao}
+        <div class="si-act" onclick="event.stopPropagation()">${botao}</div>
       </div>`;
   },
 
   render_forja(scr) {
     const s = State.s;
-    const seus = Warrior.COSMETICOS.filter(c => Warrior.possui(s, c.id));
-    const vitrine = Warrior.COSMETICOS.filter(c => !Warrior.possui(s, c.id));
+    const aba = this._forjaAba || "cabeca";
+    const previa = this._forjaPrevia;
+
+    // estado efetivo: prévia sobrepõe o slot em edição (só na visualização)
+    const equipEfetivo = previa
+      ? { ...s.personagem.equipamento, [previa.slot]: previa.id }
+      : null;
+
+    const itensAba = Warrior.COSMETICOS.filter(c => c.slot === aba)
+      .sort((a, b) => {
+        const ordem = { lendario: 0, epico: 1, raro: 2, incomum: 3, comum: 4 };
+        return ordem[a.raridade] - ordem[b.raridade];
+      });
+
+    const atualSlot = previa ? previa.slot : aba;
+    const idAtualEq = (s.personagem.equipamento || {})[atualSlot] || Warrior.SLOTS[atualSlot].padrao;
+    const nomeAtual = Warrior.porId(idAtualEq)?.nome || "—";
 
     scr.innerHTML = `
       <div class="workout-head">
-        <h1 class="workout-ex-name">🏪 Forja</h1>
-        <p class="workout-sub">Cosméticos para o seu guerreiro</p>
+        <h1 class="workout-ex-name">⚒ Forja</h1>
+        <p class="workout-sub">Forje e vista seu guerreiro</p>
         <button class="btn btn-ghost" data-action="back" style="width:auto;margin:.6rem auto;padding:.4rem 1.2rem;font-size:.8rem;">← Taverna</button>
       </div>
 
-      <div class="panel forja-saldo">
-        <div class="cs-row"><span>🪙 Seu ouro</span><span class="cs-val">${fmtNum(s.personagem.ouro)}</span></div>
-      </div>
+      <div class="panel forja-stage">
+        <div class="forja-itens">
+          <div class="forja-saldo cs-row"><span>🪙 Ouro</span><span class="cs-val">${fmtNum(s.personagem.ouro)}</span></div>
 
-      <div class="panel">
-        <div class="panel-title">Seus Itens</div>
-        ${seus.map(item => this._forjaRow(s, item)).join("")}
-      </div>
+          <div class="forja-tabs">
+            ${Object.entries(Warrior.SLOTS).map(([slot, def]) => `
+              <button class="faba${slot === aba ? " on" : ""}" data-action="forja-aba" data-arg="${slot}">
+                ${def.icone} ${def.plural}
+              </button>`).join("")}
+          </div>
 
-      ${vitrine.length ? `
-      <div class="panel">
-        <div class="panel-title">Ainda Não Possui</div>
-        ${vitrine.map(item => this._forjaRow(s, item)).join("")}
-        <p class="mapa-legend">Ganhe ouro treinando e quebrando recordes; algumas relíquias são recompensas por feitos.</p>
-      </div>` : ""}
+          <div class="forja-lista">
+            ${itensAba.map(item => this._forjaRow(s, item)).join("")}
+          </div>
+        </div>
+
+        <div class="forja-guerreiro">
+          <div class="ficha-warrior big forja-preview">${Warrior.svg(State.s, {
+            equipamento: equipEfetivo ? { [previa.slot]: previa.id } : null
+          })}</div>
+          ${previa ? `
+            <div class="cmp-box">
+              <div class="cmp-titulo">${escapar(Warrior.porId(previa.id)?.nome || "")}</div>
+              <div class="cmp-linha"><span class="k">ATUAL</span><span>${escapar(nomeAtual)}</span></div>
+              <div class="cmp-linha novo"><span class="k">NOVO</span><span>${escapar(Warrior.porId(previa.id)?.nome || "")}</span></div>
+              <button class="btn btn-primary" data-action="confirm-preview" style="margin-top:.5rem;">EQUIPAR</button>
+              <button class="btn btn-ghost" data-action="cancel-preview" style="width:auto;margin:.4rem auto 0;padding:.35rem .9rem;font-size:.7rem;">CANCELAR</button>
+            </div>`
+          : `<div class="cmp-box dica">Toque em um item<br>para ver no guerreiro</div>`}
+        </div>
+      </div>
     `;
   },
 
