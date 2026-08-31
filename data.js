@@ -96,7 +96,12 @@ const BIBLIOTECA_PADRAO = [
   { nome: "Abdominal",           grupo: "Abdômen", principal: ["Abdômen"],        secundarios: [] },
   { nome: "Abdominal Máquina",   grupo: "Abdômen", principal: ["Abdômen"],        secundarios: [] },
   { nome: "Elevação de Pernas",  grupo: "Abdômen", principal: ["Abdômen"],        secundarios: ["Quadríceps"] },
-  { nome: "Prancha",             grupo: "Abdômen", principal: ["Abdômen"],        secundarios: ["Lombar", "Deltoide Anterior"] }
+  { nome: "Prancha",             grupo: "Abdômen", principal: ["Abdômen"],        secundarios: ["Lombar", "Deltoide Anterior"] },
+
+  // Antebraço — isolados para evidenciar Braquial / Flexores / Extensores no mapa
+  { nome: "Rosca Punho",         grupo: "Antebraço", principal: ["Flexores do Antebraço"], secundarios: ["Braquial"] },
+  { nome: "Extensão de Punho",   grupo: "Antebraço", principal: ["Extensores do Antebraço"], secundarios: [] },
+  { nome: "Rosca Inversa",       grupo: "Antebraço", principal: ["Braquial", "Extensores do Antebraço"], secundarios: ["Bíceps"] }
 ];
 
 /* ================= CARDIO ================= */
