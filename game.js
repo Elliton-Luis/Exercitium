@@ -116,6 +116,35 @@ const Game = {
     return quebrados;
   },
 
+  /* ---------- Cardio: XP/Ouro balanceado ---------- */
+  calcularRecompensaCardio(cardio) {
+    // Baseada em duração + distância, com tetos anti-exploit
+    const dur = Math.max(1, Math.min(600, cardio.duracaoMin || 0));
+    // duração: 10 base + 0.6 por minuto até 90min (máx 64)
+    const xpDur = 10 + Math.min(dur, 90) * 0.6;
+    let xpDist = 0;
+    if (cardio.distanciaKm && cardio.distanciaKm > 0) {
+      const d = Math.min(cardio.distanciaKm, 30);
+      xpDist = d * 1.8; // até 54
+    }
+    // bônus por modalidades mais exigentes
+    const bonusModal = { natacao: 5, escada: 4, corrida: 3, remo: 3 }[cardio.modalidade] || 0;
+    let xp = Math.round(xpDur + xpDist + bonusModal);
+    // teto absoluto por sessão
+    xp = Math.max(12, Math.min(120, xp));
+    const ouro = Math.max(3, Math.min(30, Math.round(xp / 4.5)));
+    return { xp, ouro };
+  },
+
+  completarCardio(cardio) {
+    const { xp, ouro } = this.calcularRecompensaCardio(cardio);
+    const evs = this.ganharXP(xp);
+    this.ganharOuro(ouro);
+    const streakNovo = this.atualizarStreak();
+    const novasConq = this.checarConquistas();
+    return { xp, ouro, evs, streakNovo, novasConq };
+  },
+
   /* ---------- Conquistas ---------- */
   checarConquistas() {
     const desbloq = [];
