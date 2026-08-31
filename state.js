@@ -30,10 +30,11 @@ const State = {
         }
       },
       inventario: [],       // ids de cosméticos comprados/possuídos
-      exercicios: [],       // personalizados [{id, nome, grupo, principal[], secundarios[], custom:true}]
+      exercicios: [],       // personalizados [{id, nome, grupo, principal[], secundarios[], custom:true, equipamento?}]
       rotinas: [],          // [{id, nome, itens:[{exercicioId, series}]}]
       treinos: [],          // [{id, exercicioId, data, series:[{peso,reps}]}]
       cardios: [],          // [{id, modalidade, data, duracaoMin, distanciaKm, ...}]
+      favoritos: [],        // ids de exercícios favoritados (p* e c*)
       recordes: {},         // por exercicioId: {maiorPeso:{valor,reps,data}, maiorReps:{...}, melhorSerie:{...}, melhorVolumeTreino:{...}, quebras}
       streak: { atual: 0, melhor: 0, ultimoDia: null },
       conquistas: {},       // id -> {data}
@@ -91,6 +92,8 @@ const State = {
       if (!Array.isArray(this.s.cardios)) this.s.cardios = [];
       if (!Array.isArray(this.s.exercicios)) this.s.exercicios = [];
       if (!Array.isArray(this.s.treinos)) this.s.treinos = [];
+      if (!Array.isArray(this.s.favoritos)) this.s.favoritos = [];
+      else this.s.favoritos = this.s.favoritos.filter(id => typeof id === "string");
       if (typeof this.s.recordes !== "object" || this.s.recordes === null) this.s.recordes = {};
       if (typeof this.s.conquistas !== "object" || this.s.conquistas === null) this.s.conquistas = {};
       this.s.personagem.equipamento = Object.assign({
@@ -166,13 +169,14 @@ const State = {
     return { principal: p, secundarios: s };
   },
 
-  addExercicioCustom(nome, grupo, principal, secundarios) {
+  addExercicioCustom(nome, grupo, principal, secundarios, equipamento) {
     const clean = this.sanitizarMusculos(principal, secundarios);
     const ex = {
       id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       nome: String(nome).trim().slice(0, 40) || "Exercício",
       grupo: GRUPOS.includes(grupo) ? grupo : "Peito",
       principal: clean.principal, secundarios: clean.secundarios,
+      equipamento: equipamento ? String(equipamento).slice(0,20) : null,
       custom: true
     };
     this.s.exercicios.push(ex);
@@ -180,22 +184,54 @@ const State = {
     return ex;
   },
 
-  updateExercicioCustom(id, nome, grupo, principal, secundarios) {
+  updateExercicioCustom(id, nome, grupo, principal, secundarios, equipamento) {
     const ex = this.s.exercicios.find(e => e.id === id);
     if (!ex) return;
     const clean = this.sanitizarMusculos(principal, secundarios);
     Object.assign(ex, {
       nome: String(nome).trim().slice(0, 40) || ex.nome,
       grupo: GRUPOS.includes(grupo) ? grupo : ex.grupo,
-      principal: clean.principal, secundarios: clean.secundarios
+      principal: clean.principal, secundarios: clean.secundarios,
+      equipamento: equipamento ? String(equipamento).slice(0,20) : null
     });
     this.save();
   },
 
   removeExercicio(id) {
     this.s.exercicios = this.s.exercicios.filter(e => e.id !== id);
+    this.s.favoritos = this.s.favoritos.filter(f => f !== id);
     this.save();
   },
+
+  toggleFavorito(id) {
+    if (!this.exercicioPorId(id)) return false;
+    const idx = this.s.favoritos.indexOf(id);
+    if (idx >= 0) this.s.favoritos.splice(idx,1);
+    else {
+      if (this.s.favoritos.length >= 30) this.s.favoritos.shift();
+      this.s.favoritos.push(id);
+    }
+    this.save();
+    return idx < 0;
+  },
+  isFavorito(id){ return this.s.favoritos.includes(id); },
+  favoritosExercicios(){
+    return this.s.favoritos.map(id=> this.exercicioPorId(id)).filter(Boolean);
+  },
+  recentesExercicios(limite=6){
+    const seen = new Set();
+    const ordem = [...this.s.treinos].sort((a,b)=>b.data-a.data);
+    const out=[];
+    for (const t of ordem){
+      if (!seen.has(t.exercicioId) && this.exercicioPorId(t.exercicioId)){
+        seen.add(t.exercicioId);
+        out.push(this.exercicioPorId(t.exercicioId));
+        if (out.length>=limite) break;
+      }
+    }
+    return out;
+  },
+  usoCount(id){ return this.s.treinos.filter(t=>t.exercicioId===id).length; },
 
   /* ---------- Rotinas (treinos pré-definidos) ---------- */
   rotinaPorId(id) {

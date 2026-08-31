@@ -23,6 +23,10 @@ const UI = {
   _cardioMod: "esteira",
   _cardioDraftKey: "exercitium_cardio_draft_v1",
   _histFiltro: "todos",
+  _exFiltro: "Todos",
+  _exSubFiltro: "Todos",
+  _busca: "",
+  _buscaTimer: null,
 
   init() {
     State.init();
@@ -170,6 +174,9 @@ const UI = {
     "delete-cardio":    function (id) { this.confirmarDeleteCardio(id); },
     "confirm-delete-cardio": function(id){ State.removeCardio(id); this.fecharModal(); this.toast("🗑 Cardio removido."); this.render_cardio(document.getElementById("screen-cardio")); this.updateHUD(); },
     "filter-history":   function (f) { this._histFiltro = f || "todos"; this.render_history(document.getElementById("screen-history")); },
+    "filter-grupo":     function (g) { this._exFiltro = g || "Todos"; this._exSubFiltro="Todos"; this.render_exercises(document.getElementById("screen-exercises")); },
+    "filter-sub":       function (s) { this._exSubFiltro = s || "Todos"; this.render_exercises(document.getElementById("screen-exercises")); },
+    "toggle-favorito":  function (id) { const fav = State.toggleFavorito(id); this.toast(fav? "⭐ Favoritado":"☆ Removido dos favoritos"); this.render_exercises(document.getElementById("screen-exercises")); },
     "chrono-toggle":    function () { this._toggleChrono(); },
     "chrono-reset":     function () { this._resetChrono(); },
     "goto-records":     function () { this.showScreen("records"); },
@@ -457,12 +464,50 @@ const UI = {
     };
   },
 
+  _norm(s){ return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim(); },
+  _subcategoriaPeito(nome){ const n=this._norm(nome); if(n.includes("inclinado")||n.includes("superior")) return "Superior"; if(n.includes("declinado")||n.includes("inferior")||n.includes("dips")) return "Inferior"; return "Geral"; },
+  _subcategoriaCostas(ex){ const n=this._norm(ex.nome); const p=(ex.principal||[]).join(" "); if(p.includes("Trapézio")|| n.includes("encolhimento")|| n.includes("face pull")|| n.includes("remada alta")) return "Trapézio"; if(n.includes("remada")) return "Espessura"; return "Dorsais"; },
+  _subcategoriaOmbro(ex){ const p=(ex.principal||[]).join(" "); if(p.includes("Deltoide Anterior")) return "Anterior"; if(p.includes("Deltoide Posterior")) return "Posterior"; if(p.includes("Deltoide Lateral")) return "Lateral"; return "Geral"; },
+  _subcategoriaPerna(ex){ const p=(ex.principal||[]).join(" "); if(p.includes("Panturrilha")) return "Panturrilha"; if(p.includes("Glúteos")&&!p.includes("Quadríceps")) return "Glúteos"; if(p.includes("Posterior")) return "Posteriores"; if(p.includes("Quadríceps")) return "Quadríceps"; return "Geral"; },
+  _matchFiltro(ex,filtro){
+    if(filtro==="Todos") return true;
+    if(filtro==="Peito") return ex.grupo==="Peito";
+    if(filtro==="Costas") return ex.grupo==="Costas";
+    if(filtro==="Ombros") return ex.grupo==="Ombros";
+    if(filtro==="Braços") return ex.grupo==="Bíceps"||ex.grupo==="Tríceps";
+    if(filtro==="Antebraço") return ex.grupo==="Antebraço";
+    if(filtro==="Pernas") return ex.grupo==="Pernas";
+    if(filtro==="Glúteos") return (ex.principal||[]).includes("Glúteos");
+    if(filtro==="Core") return ex.grupo==="Abdômen";
+    return true;
+  },
+  _matchSub(ex,sub){
+    if(sub==="Todos") return true;
+    const g=this._exFiltro;
+    if(g==="Peito") return this._subcategoriaPeito(ex.nome)===sub;
+    if(g==="Costas") return this._subcategoriaCostas(ex)===sub;
+    if(g==="Ombros") return this._subcategoriaOmbro(ex)===sub;
+    if(g==="Pernas") return this._subcategoriaPerna(ex)===sub;
+    return true;
+  },
+
   /* ================= EXERCÍCIOS ================= */
   render_exercises(scr) {
     const busca = this._busca || "";
-    const todos = State.todosExercicios()
-      .filter(e => e.nome.toLowerCase().includes(busca.toLowerCase()))
-      .sort((a, b) =>
+    const filtro = this._exFiltro || "Todos";
+    const sub = this._exSubFiltro || "Todos";
+    const buscaNorm = this._norm(busca);
+    const termos = buscaNorm ? buscaNorm.split(/\s+/).filter(Boolean) : [];
+    const todosRaw = State.todosExercicios();
+    const filtrados = todosRaw.filter(e=>{
+      if(!this._matchFiltro(e,filtro)) return false;
+      if(!this._matchSub(e,sub)) return false;
+      if(termos.length){
+        const hay = this._norm(e.nome+" "+e.grupo+" "+(e.principal||[]).join(" ")+" "+(e.secundarios||[]).join(" ")+" "+(e.equipamento||""));
+        return termos.every(t=> hay.includes(t));
+      }
+      return true;
+    }).sort((a, b) =>
         GRUPOS.indexOf(a.grupo) - GRUPOS.indexOf(b.grupo) ||
         a.nome.localeCompare(b.nome));
 
@@ -475,37 +520,88 @@ const UI = {
       ? (this._pickCtx.modo === "rotina" ? "goto-rotinaedit" : "back-to-session")
       : "back";
 
+    const FILTROS = ["Todos","Peito","Costas","Ombros","Braços","Antebraço","Pernas","Glúteos","Core"];
+    const subMap = {
+      "Peito": ["Todos","Superior","Geral","Inferior"],
+      "Costas": ["Todos","Dorsais","Espessura","Trapézio"],
+      "Ombros": ["Todos","Anterior","Lateral","Posterior"],
+      "Pernas": ["Todos","Quadríceps","Posteriores","Glúteos","Panturrilha"]
+    };
+    const subs = subMap[filtro] || null;
+
     let html = `
       <div class="workout-head">
         <h1 class="workout-ex-name">${titulo}</h1>
         <button class="btn btn-ghost" data-action="${voltarAction}" style="width:auto;margin:.6rem auto;padding:.4rem 1.2rem;font-size:.8rem;">← Voltar</button>
       </div>
-      <input type="search" id="busca-ex" class="search-input" placeholder="Buscar exercício..." value="${escapar(busca)}">
-      <button class="btn" data-action="new-exercise" style="margin-bottom:.8rem;">✒ Criar Exercício Personalizado</button>
+      <input type="search" id="busca-ex" class="search-input" placeholder="🔎 Buscar exercício... (ex: supino, peito maquina, lateral)" value="${escapar(busca)}">
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.6rem;">
+        ${FILTROS.map(f=> `<button class="chip ${f===filtro?"on":""}" data-action="filter-grupo" data-arg="${f}" style="${f===filtro?"background:rgba(184,146,58,.18);border-color:var(--gold);color:var(--gold-bright)":""}">${f}</button>`).join("")}
+      </div>
+      ${subs? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.7rem;">${subs.map(s=> `<button class="chip ${s===sub?"on":""}" data-action="filter-sub" data-arg="${s}" style="font-size:.82rem;${s===sub?"background:rgba(184,146,58,.18);border-color:var(--gold);color:var(--gold-bright)":""}">${s}</button>`).join("")}</div>`:""}
     `;
 
-    if (todos.length === 0) html += `<p class="empty-msg">Nenhum exercício encontrado.</p>`;
+    // Favoritos e Recentes apenas quando sem busca e filtro Todos e sem contexto de pick
+    if(!buscaNorm && filtro==="Todos" && !this._pickCtx){
+      const favs = State.favoritosExercicios();
+      const recentes = State.recentesExercicios(6);
+      if(favs.length){
+        html += `<div class="group-header">⭐ MEUS FAVORITOS</div><div class="ex-list">`;
+        for(const ex of favs){
+          const st = State.statsExercicio(ex.id);
+          html += `<div style="display:flex;gap:.35rem;align-items:stretch;">
+            <button class="ex-item" style="flex:1;border-left-color:var(--gold)" data-action="select-exercise" data-arg="${ex.id}">
+              <div class="ex-info"><div>⭐ ${ex.nome}</div><div class="ex-muscles">${ex.grupo} · ${ex.principal.join(", ")}</div></div>
+              <div class="ex-stats">${st.numTreinos?`⚒ ${st.numTreinos}`:""}</div>
+            </button>
+            <button class="icon-btn" data-action="toggle-favorito" data-arg="${ex.id}" title="Desfavoritar">⭐</button>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+      if(recentes.length){
+        html += `<div class="group-header">🕘 MAIS USADOS</div><div class="ex-list">`;
+        for(const ex of recentes){
+          const st = State.statsExercicio(ex.id);
+          html += `<div style="display:flex;gap:.35rem;align-items:stretch;">
+            <button class="ex-item" style="flex:1" data-action="select-exercise" data-arg="${ex.id}">
+              <div class="ex-info"><div>${ex.nome}</div><div class="ex-muscles">${ex.grupo} · ${ex.principal.join(", ")}</div></div>
+              <div class="ex-stats">⚒ ${State.usoCount(ex.id)} · ${st.maiorPeso? st.maiorPeso.valor+"kg":""}</div>
+            </button>
+            <button class="icon-btn ${State.isFavorito(ex.id)?"on":""}" data-action="toggle-favorito" data-arg="${ex.id}" title="Favoritar">${State.isFavorito(ex.id)?"⭐":"☆"}</button>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+    }
+
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;margin:.6rem 0 .3rem;"><span class="m-sub" style="font-size:.82rem;color:var(--text-dim)">${filtrados.length} exercícios</span><button class="btn" data-action="new-exercise" style="width:auto;padding:.35rem .9rem;font-size:.72rem;">✒ Criar Personalizado</button></div>`;
+
+    if (filtrados.length === 0) html += `<p class="empty-msg">Nenhum exercício encontrado.<br>Tente termos diferentes ou limpe os filtros.</p>`;
 
     let grupoAtual = null;
     html += `<div class="ex-list">`;
-    for (const ex of todos) {
+    for (const ex of filtrados) {
       if (ex.grupo !== grupoAtual) {
         grupoAtual = ex.grupo;
         html += `<div class="group-header">${grupoAtual}</div>`;
       }
       const st = State.statsExercicio(ex.id);
       const musc = [ex.principal.join(", "), ex.secundarios.join(", ")].filter(Boolean).join(" · ");
+      const equip = ex.equipamento ? ` · ${ex.equipamento}` : "";
+      const fav = State.isFavorito(ex.id);
       html += `
         <div style="display:flex;gap:.35rem;align-items:stretch;">
           <button class="ex-item" style="flex:1" data-action="select-exercise" data-arg="${ex.id}">
             <div class="ex-info">
-              <div>${ex.nome}${ex.padrao ? "" : ' <span title="Personalizado">✒</span>'}</div>
+              <div>${ex.nome}${ex.padrao ? "" : ' <span title="Personalizado">✒</span>'}${equip? `<small style="color:var(--text-dim)"> ${escapar(equip)}</small>`:""}</div>
               <div class="ex-muscles">${musc}</div>
             </div>
             <div class="ex-stats">
               ${st.maiorPeso ? `🏅 ${st.maiorPeso.valor}kg<br>⚒ ${st.numTreinos}` : ""}
             </div>
           </button>
+          <button class="icon-btn ${fav?"on":""}" data-action="toggle-favorito" data-arg="${ex.id}" title="${fav?"Desfavoritar":"Favoritar"}">${fav?"⭐":"☆"}</button>
           ${!this._modoTreino && !this._pickCtx ? `
             <button class="icon-btn" data-action="edit-exercise" data-arg="${ex.id}" title="Editar">✏</button>
             <button class="icon-btn danger" data-action="delete-exercise" data-arg="${ex.id}" title="Apagar">✕</button>` : ""}
@@ -522,9 +618,8 @@ const UI = {
         const pos = inp.selectionStart;
         this.render_exercises(scr);
         const novoInp = document.getElementById("busca-ex");
-        novoInp.focus();
-        novoInp.setSelectionRange(pos, pos);
-      }, 200);
+        if(novoInp){ novoInp.focus(); novoInp.setSelectionRange(pos, pos); }
+      }, 180);
     });
   },
 
@@ -533,6 +628,7 @@ const UI = {
     const chipsMusculos = (selecionados) => MUSCULOS.map(m =>
       `<button type="button" class="check-chip${(selecionados || []).includes(m) ? " on" : ""}" data-action="toggle-muscle" data-musculo="${m}">${m}</button>`
     ).join("");
+    const EQUIPS = ["Barra","Halteres","Máquina","Smith","Cabo","Peso Corporal","Outro"];
 
     this.modal(`
       <h2>${ex ? "EDITAR EXERCÍCIO" : "NOVO EXERCÍCIO"}</h2>
@@ -544,6 +640,13 @@ const UI = {
         <label>Grupo muscular principal</label>
         <select id="fex-grupo">
           ${GRUPOS.map(g => `<option ${ex && ex.grupo === g ? "selected" : ""}>${g}</option>`).join("")}
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Equipamento</label>
+        <select id="fex-equip">
+          <option value="">—</option>
+          ${EQUIPS.map(e=> `<option ${ex && ex.equipamento===e?"selected":""}>${e}</option>`).join("")}
         </select>
       </div>
       <div class="form-field">
@@ -573,6 +676,7 @@ const UI = {
     if (nome.length > 40) { this.toast("⚠ Nome muito longo (máx 40)."); return; }
     const grupo = document.getElementById("fex-grupo").value;
     if (!GRUPOS.includes(grupo)) { this.toast("⚠ Grupo inválido."); return; }
+    const equipamento = document.getElementById("fex-equip")?.value || null;
     const pegar = (elId) => [...document.querySelectorAll(`#${elId} .check-chip.on`)].map(c => c.dataset.musculo);
     const principal = pegar("fex-principal");
     const secundarios = pegar("fex-sec");
@@ -582,14 +686,14 @@ const UI = {
     if (id) {
       const alvoId = document.querySelector("[data-action='submit-exercise']")?.dataset.arg || id;
       if (String(alvoId).startsWith("p")) {
-        State.addExercicioCustom(nome, grupo, principal, secundarios);
+        State.addExercicioCustom(nome, grupo, principal, secundarios, equipamento);
         this.toast("✒ Cópia personalizada criada.");
       } else {
-        State.updateExercicioCustom(alvoId, nome, grupo, principal, secundarios);
+        State.updateExercicioCustom(alvoId, nome, grupo, principal, secundarios, equipamento);
         this.toast("✔ Exercício atualizado.");
       }
     } else {
-      State.addExercicioCustom(nome, grupo, principal, secundarios);
+      State.addExercicioCustom(nome, grupo, principal, secundarios, equipamento);
       this.toast("✒ Exercício criado!");
     }
     this.fecharModal();
