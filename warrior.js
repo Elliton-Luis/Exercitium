@@ -274,7 +274,8 @@ const Warrior = (() => {
     { nome: "Peito",  musculos: ["Peitoral"] },
     { nome: "Costas", musculos: ["Dorsais", "Trapézio"] },
     { nome: "Ombros", musculos: ["Deltoide Anterior", "Deltoide Lateral", "Deltoide Posterior"] },
-    { nome: "Braços", musculos: ["Bíceps", "Tríceps", "Braquial", "Flexores do Antebraço", "Extensores do Antebraço"] },
+    { nome: "Braços", musculos: ["Bíceps", "Tríceps"] },
+    { nome: "Antebraço", musculos: ["Braquial", "Flexores do Antebraço", "Extensores do Antebraço"] },
     { nome: "Pernas", musculos: ["Quadríceps", "Posterior", "Glúteos", "Panturrilha"] },
     { nome: "Core",   musculos: ["Abdômen", "Lombar"] }
   ];
@@ -284,7 +285,8 @@ const Warrior = (() => {
     { grupo: "Peito", itens: ["Peitoral"] },
     { grupo: "Costas", itens: ["Dorsais", "Trapézio"] },
     { grupo: "Ombros", itens: ["Deltoide Anterior", "Deltoide Lateral", "Deltoide Posterior"] },
-    { grupo: "Braços", itens: ["Bíceps", "Tríceps", "Braquial", "Flexores do Antebraço", "Extensores do Antebraço"] },
+    { grupo: "Braços", itens: ["Bíceps", "Tríceps"] },
+    { grupo: "Antebraço", itens: ["Braquial", "Flexores do Antebraço", "Extensores do Antebraço"] },
     { grupo: "Pernas", itens: ["Quadríceps", "Posterior", "Glúteos", "Panturrilha"] },
     { grupo: "Core", itens: ["Abdômen", "Lombar"] }
   ];
@@ -340,7 +342,8 @@ const Warrior = (() => {
     base["Costas"] = base["Dorsais"] || 0;
     base["Ombros"] = Math.round((base["Deltoide Anterior"] + base["Deltoide Lateral"] + base["Deltoide Posterior"]) / 3);
     base["Core"] = Math.round((base["Abdômen"] + (base["Lombar"]||0)) / 2);
-    base["Antebraço"] = Math.round(((base["Flexores do Antebraço"]||0) + (base["Extensores do Antebraço"]||0))/2);
+    base["Antebraço"] = Math.round(((base["Braquial"]||0) + (base["Flexores do Antebraço"]||0) + (base["Extensores do Antebraço"]||0))/3);
+    base["Braços"] = Math.round(((base["Bíceps"]||0)+(base["Tríceps"]||0))/2);
     // compat: Posterior já é o nome interno; mantém
     return base;
   }

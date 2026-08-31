@@ -5,7 +5,7 @@
 
 const GRUPOS = [
   "Peito", "Costas", "Ombros", "Bíceps", "Tríceps",
-  "Pernas", "Abdômen"
+  "Antebraço", "Pernas", "Abdômen"
 ];
 
 // Músculos fine-grained (segmentação anatômica para tracker)
