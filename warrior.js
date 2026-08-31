@@ -769,67 +769,105 @@ const Warrior = (() => {
     const silhuetaFrente = `
       <svg class="mapa-silhueta" viewBox="0 0 100 170" aria-hidden="true">
         <g stroke="#171009" stroke-width=".9">
+          <!-- base corporal sutil para unificar silhueta -->
+          <path d="M33,29 L36,32 L38,33 L39,47 L26,49 L22,60 L24,80 L27,84 L38,84 L40,86 L48,86 L48,127 L44,137 L44,148 L49,148 L51,148 L56,148 L56,137 L52,127 L52,86 L62,84 L73,84 L76,80 L78,60 L74,49 L61,47 L62,33 L64,32 L67,29 Q50,22 33,29 Z" fill="#b98d63" opacity="0.14" stroke="none"/>
           <circle cx="50" cy="13" r="8" fill="#c79b6f"/>
           <rect x="46" y="21" width="8" height="6" fill="#b98d63"/>
-          <path d="M33,28 Q50,23 67,28 L66,34 Q50,29 34,34 Z" fill="${heatFine("Trapézio")}"/>
-          <ellipse cx="32" cy="38" rx="7.5" ry="6.5" fill="${heatFine("Deltoide Lateral")}"/>
-          <ellipse cx="68" cy="38" rx="7.5" ry="6.5" fill="${heatFine("Deltoide Lateral")}"/>
-          <ellipse cx="32" cy="42" rx="4.2" ry="3.5" fill="${heatFine("Deltoide Anterior")}" opacity="0.95"/>
-          <ellipse cx="68" cy="42" rx="4.2" ry="3.5" fill="${heatFine("Deltoide Anterior")}" opacity="0.95"/>
-          <rect x="39" y="33" width="10.4" height="13" rx="4" fill="${heatFine("Peitoral")}"/>
-          <rect x="50.6" y="33" width="10.4" height="13" rx="4" fill="${heatFine("Peitoral")}"/>
-          <!-- bíceps vs braquial vs tríceps: bíceps mais visível de frente -->
-          <ellipse cx="26.5" cy="49" rx="5.2" ry="5.5" fill="${heatFine("Bíceps")}"/>
-          <ellipse cx="73.5" cy="49" rx="5.2" ry="5.5" fill="${heatFine("Bíceps")}"/>
-          <ellipse cx="26.5" cy="52" rx="3.2" ry="4" fill="${heatFine("Braquial")}" opacity="0.85"/>
-          <ellipse cx="73.5" cy="52" rx="3.2" ry="4" fill="${heatFine("Braquial")}" opacity="0.85"/>
-          <polygon points="22.5,60 30.5,60 28.5,79 24.5,79" fill="${heatFine("Flexores do Antebraço")}"/>
-          <polygon points="69.5,60 77.5,60 75.5,79 71.5,79" fill="${heatFine("Flexores do Antebraço")}"/>
-          <polygon points="22,61 24,61 23,79 21,79" fill="${heatFine("Extensores do Antebraço")}" opacity="0.9"/>
-          <polygon points="76,61 78,61 77,79 79,79" fill="${heatFine("Extensores do Antebraço")}" opacity="0.9"/>
-          <circle cx="26.5" cy="83" r="3" fill="#b98d63"/>
-          <circle cx="73.5" cy="83" r="3" fill="#b98d63"/>
-          <rect x="42" y="63" width="7" height="5.4" rx="1.5" fill="${heatFine("Abdômen")}"/>
-          <rect x="51" y="63" width="7" height="5.4" rx="1.5" fill="${heatFine("Abdômen")}"/>
-          <rect x="42" y="70" width="7" height="5.4" rx="1.5" fill="${heatFine("Abdômen")}"/>
-          <rect x="51" y="70" width="7" height="5.4" rx="1.5" fill="${heatFine("Abdômen")}"/>
-          <rect x="43" y="77" width="6" height="5" rx="1.5" fill="${heatFine("Abdômen")}"/>
-          <rect x="51" y="77" width="6" height="5" rx="1.5" fill="${heatFine("Abdômen")}"/>
-          <polygon points="39,86 49.5,86 48,126 40,126" fill="${heatFine("Quadríceps")}"/>
-          <polygon points="50.5,86 61,86 60,126 52,126" fill="${heatFine("Quadríceps")}"/>
-          <ellipse cx="44.5" cy="137" rx="5.4" ry="10.5" fill="${heatFine("Panturrilha")}"/>
-          <ellipse cx="55.5" cy="137" rx="5.4" ry="10.5" fill="${heatFine("Panturrilha")}"/>
-          <rect x="39" y="148" width="12" height="5.5" rx="1.5" fill="#33200f"/>
-          <rect x="49" y="148" width="12" height="5.5" rx="1.5" fill="#33200f"/>
+          <!-- trapézio integrado ao pescoço/ombros -->
+          <path d="M41,26 L46,27.5 L50,24 L54,27.5 L59,26 L64,31 L61,36 L50,30 L39,36 L36,31 Z" fill="${heatFine("Trapézio")}"/>
+          <!-- peitoral com separação central realista -->
+          <path d="M38.2,33.5 L49.2,33.5 L49.2,47.5 Q43.5,52 38.2,47.8 Z" fill="${heatFine("Peitoral")}"/>
+          <path d="M50.8,33.5 L61.8,33.5 L61.8,47.8 Q56.5,52 50.8,47.5 Z" fill="${heatFine("Peitoral")}"/>
+          <path d="M49.5,34 L50.5,34 L50.5,48 L49.5,48 Z" fill="#171009" opacity="0.22"/>
+          <!-- deltoides: lateral (ombro largo) + anterior (frente) contíguos ao peitoral -->
+          <ellipse cx="31.5" cy="38.5" rx="8" ry="7.2" fill="${heatFine("Deltoide Lateral")}"/>
+          <ellipse cx="68.5" cy="38.5" rx="8" ry="7.2" fill="${heatFine("Deltoide Lateral")}"/>
+          <ellipse cx="31.8" cy="43.2" rx="4.6" ry="4.2" fill="${heatFine("Deltoide Anterior")}" stroke="#171009" stroke-width="0.6"/>
+          <ellipse cx="68.2" cy="43.2" rx="4.6" ry="4.2" fill="${heatFine("Deltoide Anterior")}" stroke="#171009" stroke-width="0.6"/>
+          <!-- braços: bíceps (frente) e braquial interno, tríceps fica atrás então sutil na frente -->
+          <path d="M23.8,46.5 L29.2,46.5 Q31,51 29.2,56 Q26.5,60 23.2,56 Q21.5,51 23.8,46.5 Z" fill="${heatFine("Bíceps")}"/>
+          <path d="M70.8,46.5 L76.2,46.5 Q78,51 76.2,56 Q73.5,60 70.2,56 Q68.5,51 70.8,46.5 Z" fill="${heatFine("Bíceps")}"/>
+          <ellipse cx="26.8" cy="54.5" rx="2.6" ry="3.8" fill="${heatFine("Braquial")}" />
+          <ellipse cx="73.2" cy="54.5" rx="2.6" ry="3.8" fill="${heatFine("Braquial")}" />
+          <!-- antebraço: flexores (volar) + extensores (dorsal) lado a lado sem vão -->
+          <g>
+            <path d="M22.2,60.5 L28.0,60.5 L27.2,80.2 L22.8,80.2 Z" fill="${heatFine("Flexores do Antebraço")}"/>
+            <path d="M28.0,60.5 L30.6,60.5 L29.8,80.2 L27.2,80.2 Z" fill="${heatFine("Extensores do Antebraço")}"/>
+          </g>
+          <g>
+            <path d="M69.4,60.5 L71.9,60.5 L72.8,80.2 L71.9,80.2 L69.4,60.5 Z" fill="${heatFine("Extensores do Antebraço")}"/>
+            <path d="M71.9,60.5 L77.8,60.5 L77.2,80.2 L72.8,80.2 Z" fill="${heatFine("Flexores do Antebraço")}"/>
+          </g>
+          <circle cx="26.5" cy="83.6" r="2.7" fill="#c79b6f"/>
+          <circle cx="73.5" cy="83.6" r="2.7" fill="#c79b6f"/>
+          <!-- abdômen em blocos 3x2 com separação realista -->
+          <g>
+            <rect x="41.2" y="60.5" width="7.8" height="6.2" rx="1.4" fill="${heatFine("Abdômen")}"/>
+            <rect x="51" y="60.5" width="7.8" height="6.2" rx="1.4" fill="${heatFine("Abdômen")}"/>
+            <rect x="41.2" y="67.8" width="7.8" height="6.2" rx="1.4" fill="${heatFine("Abdômen")}"/>
+            <rect x="51" y="67.8" width="7.8" height="6.2" rx="1.4" fill="${heatFine("Abdômen")}"/>
+            <rect x="42.2" y="75.2" width="7" height="6" rx="1.3" fill="${heatFine("Abdômen")}"/>
+            <rect x="50.8" y="75.2" width="7" height="6" rx="1.3" fill="${heatFine("Abdômen")}"/>
+            <line x1="50" y1="60.5" x2="50" y2="81.5" stroke="#171009" stroke-width="0.7" opacity="0.9"/>
+          </g>
+          <!-- pernas: quadríceps frontal com separação vasto -->
+          <path d="M39.2,86.5 L49.3,86.5 L48.2,127 L40.2,127 Z" fill="${heatFine("Quadríceps")}"/>
+          <path d="M50.7,86.5 L60.8,86.5 L59.8,127 L51.8,127 Z" fill="${heatFine("Quadríceps")}"/>
+          <path d="M44,86.5 L45,86.5 L44.2,127 L43.2,127 Z" fill="#171009" opacity="0.18"/>
+          <path d="M55,86.5 L56,86.5 L55.2,127 L54.2,127 Z" fill="#171009" opacity="0.18"/>
+          <!-- panturrilha integrada à perna -->
+          <ellipse cx="44.6" cy="137" rx="5.6" ry="10.8" fill="${heatFine("Panturrilha")}"/>
+          <ellipse cx="55.4" cy="137" rx="5.6" ry="10.8" fill="${heatFine("Panturrilha")}"/>
+          <rect x="39" y="148" width="10" height="5.5" rx="1.5" fill="#33200f"/>
+          <rect x="51" y="148" width="10" height="5.5" rx="1.5" fill="#33200f"/>
         </g>
       </svg>`;
 
     const silhuetaCostas = `
       <svg class="mapa-silhueta" viewBox="0 0 100 170" aria-hidden="true">
         <g stroke="#171009" stroke-width=".9">
+          <path d="M33,29 L36,32 L38,33 L39,47 L26,52 L22,62 L24,80 L27,84 L38,84 L40,86 L48,86 L48,127 L44,143 L44,153 L49,153 L51,153 L56,153 L56,143 L52,127 L52,86 L62,84 L73,84 L76,80 L78,62 L74,52 L61,47 L62,33 L64,32 L67,29 Q50,22 33,29 Z" fill="#a87e56" opacity="0.12" stroke="none"/>
           <circle cx="50" cy="13" r="8" fill="#b98d63"/>
           <rect x="46" y="21" width="8" height="6" fill="#a87e56"/>
-          <path d="M35,26 Q50,21 65,26 L61,38 Q50,33 39,38 Z" fill="${heatFine("Trapézio")}"/>
-          <ellipse cx="32" cy="38" rx="7.5" ry="6.5" fill="${heatFine("Deltoide Posterior")}"/>
-          <ellipse cx="68" cy="38" rx="7.5" ry="6.5" fill="${heatFine("Deltoide Posterior")}"/>
-          <polygon points="37,36 47,35 45,70 40,64" fill="${heatFine("Dorsais")}"/>
-          <polygon points="63,36 53,35 55,70 60,64" fill="${heatFine("Dorsais")}"/>
-          <line x1="50" y1="34" x2="50" y2="78" stroke="#171009" stroke-width="1.4"/>
-          <ellipse cx="26.5" cy="52" rx="5.2" ry="9" fill="${heatFine("Tríceps")}"/>
-          <ellipse cx="73.5" cy="52" rx="5.2" ry="9" fill="${heatFine("Tríceps")}"/>
-          <polygon points="22.5,62 30.5,62 28.5,80 24.5,80" fill="${heatFine("Extensores do Antebraço")}"/>
-          <polygon points="69.5,62 77.5,62 75.5,80 71.5,80" fill="${heatFine("Extensores do Antebraço")}"/>
-          <circle cx="26.5" cy="84" r="3" fill="#b98d63"/>
-          <circle cx="73.5" cy="84" r="3" fill="#b98d63"/>
-          <rect x="42" y="72" width="16" height="10" rx="2" fill="${heatFine("Lombar")}"/>
-          <rect x="39" y="83" width="10.5" height="15" rx="5" fill="${heatFine("Glúteos")}"/>
-          <rect x="50.5" y="83" width="10.5" height="15" rx="5" fill="${heatFine("Glúteos")}"/>
-          <polygon points="40,99 49.5,99 48,132 41,132" fill="${heatFine("Posterior")}"/>
-          <polygon points="50.5,99 60,99 59,132 52,132" fill="${heatFine("Posterior")}"/>
-          <ellipse cx="44.5" cy="143" rx="5.4" ry="10" fill="${heatFine("Panturrilha")}"/>
-          <ellipse cx="55.5" cy="143" rx="5.4" ry="10" fill="${heatFine("Panturrilha")}"/>
-          <rect x="39" y="153" width="12" height="5.5" rx="1.5" fill="#33200f"/>
-          <rect x="49" y="153" width="12" height="5.5" rx="1.5" fill="#33200f"/>
+          <!-- trapézio em diamante superior integrado -->
+          <path d="M41,26 L46,27.5 L50,22 L54,27.5 L59,26 L63.5,32 L50,38 L36.5,32 Z" fill="${heatFine("Trapézio")}"/>
+          <!-- deltoide posterior como capa do ombro -->
+          <ellipse cx="31.5" cy="39.2" rx="8.2" ry="7.5" fill="${heatFine("Deltoide Posterior")}"/>
+          <ellipse cx="68.5" cy="39.2" rx="8.2" ry="7.5" fill="${heatFine("Deltoide Posterior")}"/>
+          <!-- dorsais em asas largas conectadas à coluna -->
+          <path d="M37.2,36.5 L46.8,36.5 L45.2,70 L40.5,65 L37.2,55 Z" fill="${heatFine("Dorsais")}"/>
+          <path d="M62.8,36.5 L53.2,36.5 L54.8,70 L59.5,65 L62.8,55 Z" fill="${heatFine("Dorsais")}"/>
+          <line x1="50" y1="33" x2="50" y2="78" stroke="#171009" stroke-width="1.5"/>
+          <!-- tríceps posterior do braço -->
+          <ellipse cx="26.5" cy="53" rx="5.4" ry="8.5" fill="${heatFine("Tríceps")}"/>
+          <ellipse cx="73.5" cy="53" rx="5.4" ry="8.5" fill="${heatFine("Tríceps")}"/>
+          <!-- antebraço extensores (dominante atrás) + flexores lateral -->
+          <g>
+            <path d="M22.2,61.5 L28.5,61.5 L27.8,80.5 L22.6,80.5 Z" fill="${heatFine("Extensores do Antebraço")}"/>
+            <path d="M28.5,61.5 L30.6,61.5 L29.9,80.5 L27.8,80.5 Z" fill="${heatFine("Flexores do Antebraço")}" opacity="0.9"/>
+          </g>
+          <g>
+            <path d="M71.5,61.5 L77.8,61.5 L77.4,80.5 L71.5,80.5 Z" fill="${heatFine("Extensores do Antebraço")}"/>
+            <path d="M69.4,61.5 L71.5,61.5 L71.5,80.5 L69.8,80.5 Z" fill="${heatFine("Flexores do Antebraço")}" opacity="0.9"/>
+          </g>
+          <circle cx="26.5" cy="84.2" r="2.7" fill="#c79b6f"/>
+          <circle cx="73.5" cy="84.2" r="2.7" fill="#c79b6f"/>
+          <!-- lombar paravertebral -->
+          <rect x="42.5" y="71" width="15" height="10.5" rx="2" fill="${heatFine("Lombar")}"/>
+          <line x1="50" y1="71" x2="50" y2="81.5" stroke="#171009" stroke-width="0.6" opacity="0.7"/>
+          <!-- glúteos com forma arredondada e separação central -->
+          <path d="M39.2,83.5 Q39.2,82 41,82 L48.5,82 Q49.5,82 49.5,84 L49.5,94 Q49.5,98 44.5,98 Q39.2,98 39.2,94 Z" fill="${heatFine("Glúteos")}"/>
+          <path d="M50.5,82 Q50.5,82 51.5,82 L59,82 Q60.8,82 60.8,83.5 L60.8,94 Q60.8,98 55.5,98 Q50.5,98 50.5,94 Z" fill="${heatFine("Glúteos")}"/>
+          <line x1="50" y1="82" x2="50" y2="98" stroke="#171009" stroke-width="0.7" opacity="0.9"/>
+          <!-- posteriores coxa posterior -->
+          <path d="M40.2,99 L49.2,99 L48.2,132.5 L40.8,132.5 Z" fill="${heatFine("Posterior")}"/>
+          <path d="M50.8,99 L59.8,99 L59.2,132.5 L51.8,132.5 Z" fill="${heatFine("Posterior")}"/>
+          <line x1="50" y1="99" x2="50" y2="132.5" stroke="#171009" stroke-width="0.6" opacity="0.8"/>
+          <!-- panturrilha posterior em gota -->
+          <ellipse cx="44.6" cy="143" rx="5.6" ry="10.2" fill="${heatFine("Panturrilha")}"/>
+          <ellipse cx="55.4" cy="143" rx="5.6" ry="10.2" fill="${heatFine("Panturrilha")}"/>
+          <rect x="39" y="153" width="10" height="5.5" rx="1.5" fill="#33200f"/>
+          <rect x="51" y="153" width="10" height="5.5" rx="1.5" fill="#33200f"/>
         </g>
       </svg>`;
 
