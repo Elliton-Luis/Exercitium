@@ -15,6 +15,14 @@ const UI = {
   _cooldownMs: 10000,           // intervalo entre séries registradas
   _cooldownAte: 0,              // timestamp em que o cooldown expira
   _cooldownTimer: null,         // intervalo de atualização do contador
+  _chronoTimer: null,
+  _chronoStart: 0,
+  _chronoPaused: 0,
+  _chronoAcc: 0,
+  _salvandoCardio: false,
+  _cardioMod: "esteira",
+  _cardioDraftKey: "exercitium_cardio_draft_v1",
+  _histFiltro: "todos",
 
   init() {
     State.init();
@@ -41,11 +49,14 @@ const UI = {
 
   showScreen(nome) {
     this.telaAtual = nome;
+    // parar cronômetro se saiu do treino
+    if (nome !== "workout") this._stopChrono();
     document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
     const scr = document.getElementById("screen-" + nome);
     if (scr) { scr.classList.remove("hidden"); scr.innerHTML = ""; }
     this.updateHUD();
     if (this["render_" + nome]) this["render_" + nome](scr);
+    if (nome === "workout" && this.sessao) this._startChrono();
   },
 
   updateHUD() {
@@ -150,9 +161,17 @@ const UI = {
 
   /* ================= AÇÕES GLOBAIS ================= */
   actions: {
-    "goto-tavern":      function () { this.showScreen("tavern"); }, // sessão em andamento permanece salva
+    "goto-tavern":      function () { this._stopChrono(); this.showScreen("tavern"); }, // sessão em andamento permanece salva
     "start-workout":    function () { this.showScreen("workoutstart"); },
     "goto-exercises":   function () { this._modoTreino = false; this._pickCtx = null; this.showScreen("exercises"); },
+    "goto-cardio":      function () { this._cardioMod = this._cardioMod || "esteira"; this.showScreen("cardio"); },
+    "select-cardio-mod":function (id) { this._cardioMod = id; this._salvarCardioDraft(); this.render_cardio(document.getElementById("screen-cardio")); },
+    "submit-cardio":    function () { this._salvarCardio(); },
+    "delete-cardio":    function (id) { this.confirmarDeleteCardio(id); },
+    "confirm-delete-cardio": function(id){ State.removeCardio(id); this.fecharModal(); this.toast("🗑 Cardio removido."); this.render_cardio(document.getElementById("screen-cardio")); this.updateHUD(); },
+    "filter-history":   function (f) { this._histFiltro = f || "todos"; this.render_history(document.getElementById("screen-history")); },
+    "chrono-toggle":    function () { this._toggleChrono(); },
+    "chrono-reset":     function () { this._resetChrono(); },
     "goto-records":     function () { this.showScreen("records"); },
     "goto-character":   function () { this.showScreen("character"); },
     "goto-achievements":function () { this.showScreen("achievements"); },
@@ -412,9 +431,11 @@ const UI = {
       </div>
 
       <button class="btn btn-primary btn-big" data-action="start-workout">⚔ INICIAR TREINO</button>
+      <button class="btn" data-action="goto-cardio" style="margin-top:.6rem;">🏃 REGISTRAR CARDIO</button>
 
       <nav class="menu">
         <button class="menu-item" data-action="goto-exercises"><span class="mi-icon">📜</span><span>Exercícios</span></button>
+        <button class="menu-item" data-action="goto-cardio"><span class="mi-icon">🏃</span><span>Cardio</span></button>
         <button class="menu-item" data-action="goto-stats"><span class="mi-icon">📈</span><span>Evolução</span></button>
         <button class="menu-item" data-action="goto-character"><span class="mi-icon">👤</span><span>Personagem</span></button>
         <button class="menu-item" data-action="goto-forja"><span class="mi-icon">🏪</span><span>Forja</span></button>
@@ -541,20 +562,30 @@ const UI = {
   },
 
   salvarExercicioForm(id) {
-    const nome = document.getElementById("fex-nome").value.trim();
-    if (!nome) { this.toast("⚠ Dê um nome ao exercício."); return; }
+    const nomeEl = document.getElementById("fex-nome");
+    const nome = nomeEl.value.trim();
+    if (!nome) {
+      nomeEl.classList.add("input-err");
+      this.toast("⚠ Dê um nome ao exercício (1–40 caracteres).");
+      nomeEl.focus();
+      return;
+    }
+    if (nome.length > 40) { this.toast("⚠ Nome muito longo (máx 40)."); return; }
     const grupo = document.getElementById("fex-grupo").value;
+    if (!GRUPOS.includes(grupo)) { this.toast("⚠ Grupo inválido."); return; }
     const pegar = (elId) => [...document.querySelectorAll(`#${elId} .check-chip.on`)].map(c => c.dataset.musculo);
     const principal = pegar("fex-principal");
     const secundarios = pegar("fex-sec");
-
+    if (!principal.length) { this.toast("⚠ Selecione ao menos um músculo principal."); return; }
+    // evita salvar duplicado rapidly
+    if (this._salvandoEx) return; this._salvandoEx = true; setTimeout(()=> this._salvandoEx=false, 1200);
     if (id) {
-      if (String(id).startsWith("p")) {
-        // padrão: cria cópia personalizada editada
+      const alvoId = document.querySelector("[data-action='submit-exercise']")?.dataset.arg || id;
+      if (String(alvoId).startsWith("p")) {
         State.addExercicioCustom(nome, grupo, principal, secundarios);
         this.toast("✒ Cópia personalizada criada.");
       } else {
-        State.updateExercicioCustom(id, nome, grupo, principal, secundarios);
+        State.updateExercicioCustom(alvoId, nome, grupo, principal, secundarios);
         this.toast("✔ Exercício atualizado.");
       }
     } else {
@@ -790,6 +821,9 @@ const UI = {
     this._pickCtx = null;
     this._pararCooldownTimer();
     this._cooldownAte = 0;
+    this._stopChrono();
+    this._chronoAcc = 0;
+    this._chronoPaused = 0;
     State.apagarSessao(); // remove o "save game" da sessão ativa
   },
 
@@ -823,18 +857,28 @@ const UI = {
   render_workout(scr) {
     const s = this.sessao;
     if (!s) { this.showScreen("tavern"); return; }
-    scr.innerHTML = s.tipo === "livre" ? this._htmlSessaoLivre() : this._htmlSessaoGuiada();
+    const chrono = this._chronoHTML();
+    const inner = s.tipo === "livre" ? this._htmlSessaoLivre() : this._htmlSessaoGuiada();
+    scr.innerHTML = chrono + inner;
+    // iniciar/atualizar cronômetro
+    if (!this._chronoTimer) this._startChrono(); else this._tickChrono();
     this._renderChips(s.items[s.idx]);
-    // reaplica o bloqueio de cooldown no DOM recém-criado (sobrevive ao avanço automático)
     this._atualizarCooldownUI();
 
-    // Enter registra série
     const peso = document.getElementById("inp-peso");
     const reps = document.getElementById("inp-reps");
     if (peso && reps) {
       [peso, reps].forEach(inp => inp.addEventListener("keydown", e => {
         if (e.key === "Enter") this.registrarSerieSessao();
       }));
+      // validação live: destacar negativos
+      [peso,reps].forEach(inp=>{
+        inp.addEventListener("input", ()=>{
+          const v = parseFloat(inp.value);
+          if (!isNaN(v) && v <= 0) inp.classList.add("input-err");
+          else inp.classList.remove("input-err");
+        });
+      });
       reps.focus({ preventScroll: true });
     }
   },
@@ -1234,6 +1278,10 @@ const UI = {
       // mesmo se algo falhar nos modais, o usuário nunca fica preso
       this.showScreen("tavern");
 
+      // duração do treino pelo cronômetro
+      const durMs = this._elapsedMs();
+      const durMin = Math.max(1, Math.round(durMs / 60000));
+      const durStr = this._formatHMS(durMs);
       // resumo da conclusão (modal sobre a taverna), com botão delegado padrão
       const numRecordes = eventos.filter(e => e.tipo === "record").length;
       const xpTotal = xpTreino + xpRecordes + xpConq;
@@ -1242,10 +1290,16 @@ const UI = {
         <div class="m-icon">⚔</div>
         <h2>TREINO CONCLUÍDO!</h2>
         <div class="m-big">${totalSeriesSessao} séries realizadas<br>${fmtNum(volTotal)} kg de volume</div>
+        <p class="m-sub" style="margin-top:.4rem;">⏱ Duração: <b style="color:var(--gold-bright)">${durStr}</b> (${durMin} min)</p>
+        <div style="margin:.6rem 0;display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;">
+          <span class="m-sub">O cronômetro registrou <b>${durStr}</b>.</span>
+        </div>
         <div class="m-gain">+${fmtNum(xpTotal)} XP · 🪙 +${fmtNum(ouroTotal)}</div>
         ${numRecordes ? `<p class="m-sub" style="margin-top:.4rem;">🏆 ${numRecordes} novo${numRecordes > 1 ? "s" : ""} recorde${numRecordes > 1 ? "s" : ""}</p>` : ""}
         <button class="btn btn-primary" data-action="finish-continue">CONTINUAR</button>
       `);
+      // reset chrono para próximo treino
+      this._stopChrono(); this._chronoAcc=0;
     } finally {
       this._finalizando = false;
     }
@@ -1479,10 +1533,12 @@ const UI = {
   render_stats(scr) {
     const s = State.s;
     const g = Stats.gerais(s);
+    const cg = Stats.cardioEstatisticas(s);
 
     // volume semanal (últimas 8 semanas com dados) e mensal (6 meses)
     const semanas = Stats.volumePorPeriodo(s, "semana", 8);
     const meses = Stats.volumePorPeriodo(s, "mes", 6);
+    const cardioSem = Stats.cardioVolumePorPeriodo(s, "semana", 8);
 
     // volume por grupo macro (kg distribuídos entre músculos principais)
     const volGrupo = Stats.volumePorGrupo(s);
@@ -1546,6 +1602,22 @@ const UI = {
               <div class="mbar"><div style="width:${m.kg / maxKg * 100}%"></div></div>
               <span class="mpct">${fmtNum(Math.round(m.kg))}<small style="font-size:.75rem">kg</small></span>
             </div>`).join("")}
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Cardio — Visão Geral</div>
+        ${cg.total===0 ? `<p class="empty-msg" style="padding:.6rem">Nenhum cardio ainda.</p>` : `
+          <div class="kv-grid">
+            <div class="kv"><div class="k">Sessões</div><div class="v">🏃 ${cg.total}</div></div>
+            <div class="kv"><div class="k">Tempo total</div><div class="v">${Math.floor(cg.tempo/60)}h ${cg.tempo%60}min</div></div>
+            <div class="kv"><div class="k">Distância</div><div class="v">${cg.dist.toFixed(1)} km</div></div>
+            <div class="kv"><div class="k">Mais praticada</div><div class="v">${cg.maisPraticada? (cardioModalidadePorId(cg.maisPraticada[0])?.nome||cg.maisPraticada[0]):"—"}</div></div>
+            <div class="kv"><div class="k">Maior distância</div><div class="v">${cg.maiorDist.toFixed(1)} km</div></div>
+            <div class="kv"><div class="k">Melhor pace</div><div class="v">${cg.melhorPace? this._formatPace(cg.melhorPace):"—"}</div></div>
+          </div>
+          <div style="margin-top:.8rem;"><div class="panel-title" style="margin-bottom:.3rem;">Minutos por Semana (Cardio)</div>
+          ${this._chartCols(cardioSem.map(w=>({label:w.label, valor:w.valor, titulo:w.label})))}
+          </div>`}
       </div>
 
       <div class="panel">
@@ -1713,32 +1785,44 @@ const UI = {
 
   /* ================= HISTÓRICO ================= */
   render_history(scr) {
-    const treinos = [...State.s.treinos].sort((a, b) => b.data - a.data).slice(0, 60);
+    const filtro = this._histFiltro || "todos";
+    const treinos = [...State.s.treinos].sort((a, b) => b.data - a.data);
+    const cardios = [...(State.s.cardios||[])].sort((a,b)=>b.data-a.data);
+    // mescla para ordenação unificada se filtro todos
+    const todos = [
+      ...treinos.map(t=>({tipo:"forca", data:t.data, treino:t})),
+      ...cardios.map(c=>({tipo:"cardio", data:c.data, cardio:c}))
+    ].sort((a,b)=>b.data-a.data).slice(0,80);
     let html = `
       <div class="workout-head">
         <h1 class="workout-ex-name">📖 Crônicas de Treino</h1>
         <button class="btn btn-ghost" data-action="back" style="width:auto;margin:.6rem auto;padding:.4rem 1.2rem;font-size:.8rem;">← Taverna</button>
+        <div style="display:flex;gap:.4rem;justify-content:center;margin-top:.6rem;flex-wrap:wrap;">
+          <button class="btn ${filtro==="todos"?"btn-primary":"btn-ghost"}" data-action="filter-history" data-arg="todos" style="width:auto;padding:.35rem .9rem;font-size:.72rem;">TODOS</button>
+          <button class="btn ${filtro==="forca"?"btn-primary":"btn-ghost"}" data-action="filter-history" data-arg="forca" style="width:auto;padding:.35rem .9rem;font-size:.72rem;">⚔ FORÇA</button>
+          <button class="btn ${filtro==="cardio"?"btn-primary":"btn-ghost"}" data-action="filter-history" data-arg="cardio" style="width:auto;padding:.35rem .9rem;font-size:.72rem;">🏃 CARDIO</button>
+        </div>
       </div>
     `;
-    if (!treinos.length) {
-      html += `<p class="empty-msg">Sua história ainda não começou.<br>Registre o primeiro capítulo! ⚔</p>`;
+    const filtrados = todos.filter(x=> filtro==="todos" || x.tipo===filtro);
+    if (!filtrados.length) {
+      html += `<p class="empty-msg">Nenhum registro neste filtro.<br>Registre sua jornada! ⚔</p>`;
     } else {
       let diaAtual = null;
       html += `<div class="hist-day">`;
-      for (const t of treinos) {
-        const dia = new Date(t.data).toLocaleDateString("pt-BR",
-          { weekday: "long", day: "numeric", month: "long" });
+      for (const e of filtrados) {
+        const dia = new Date(e.data).toLocaleDateString("pt-BR",{ weekday:"long", day:"numeric", month:"long" });
         if (dia !== diaAtual) {
           if (diaAtual) html += `</div><div class="hist-day">`;
-          diaAtual = dia;
-          html += `<div class="hist-date">${dia}</div>`;
+          diaAtual = dia; html += `<div class="hist-date">${dia}</div>`;
         }
-        const ex = State.exercicioPorId(t.exercicioId);
-        html += `
-          <div class="hist-entry">
-            <span class="he-ex">${ex ? escapar(ex.nome) : "?"}</span>
-            <span class="he-sets">${t.series.map(s => `${s.peso}×${s.reps}`).join(" ")}</span>
-          </div>`;
+        if (e.tipo==="forca") {
+          const ex = State.exercicioPorId(e.treino.exercicioId);
+          html += `<div class="hist-entry"><span class="he-ex">${ex?escapar(ex.nome):"?"} </span><span class="he-sets">${e.treino.series.map(s=>`${s.peso}×${s.reps}`).join(" ")}</span></div>`;
+        } else {
+          const mm = cardioModalidadePorId(e.cardio.modalidade);
+          html += `<div class="hist-entry cardio"><span class="he-ex">${mm?mm.icone:"🏃"} ${mm?mm.nome:e.cardio.modalidade} · ${e.cardio.duracaoMin}min ${e.cardio.distanciaKm?"· "+e.cardio.distanciaKm+"km":""} ${e.cardio.paceMinPerKm?"· pace "+this._formatPace(e.cardio.paceMinPerKm):""}</span><span class="he-sets">🏃</span></div>`;
+        }
       }
       html += `</div>`;
     }
@@ -1805,6 +1889,280 @@ const UI = {
       <div class="m-buttons">
         <button class="btn btn-ghost" data-action="close-modal">CANCELAR</button>
         <button class="btn btn-danger" data-action="do-reset">ZERAR DADOS</button>
+      </div>
+    `);
+  },
+
+  /* ================= CRONÔMETRO DO TREINO ================= */
+  _formatHMS(ms) {
+    const s = Math.floor(ms / 1000);
+    const h = String(Math.floor(s / 3600)).padStart(2,"0");
+    const m = String(Math.floor((s % 3600) / 60)).padStart(2,"0");
+    const sc = String(s % 60).padStart(2,"0");
+    return h !== "00" ? `${h}:${m}:${sc}` : `${m}:${sc}`;
+  },
+  _elapsedMs() {
+    if (!this.sessao || !this.sessao.iniciadaEm) return this._chronoAcc;
+    if (this._chronoPaused) return this._chronoAcc;
+    return this._chronoAcc + (Date.now() - this._chronoStart);
+  },
+  _startChrono() {
+    if (this._chronoTimer) return;
+    const base = this.sessao ? this.sessao.iniciadaEm : Date.now();
+    const already = this._chronoAcc;
+    if (!already) {
+      const elapsedSinceStart = Date.now() - base;
+      this._chronoAcc = elapsedSinceStart > 0 && elapsedSinceStart < 24*3600*1000 ? elapsedSinceStart : 0;
+    }
+    this._chronoStart = Date.now();
+    this._chronoPaused = 0;
+    this._chronoTimer = setInterval(() => this._tickChrono(), 1000);
+    this._tickChrono();
+  },
+  _stopChrono() {
+    if (this._chronoTimer) { clearInterval(this._chronoTimer); this._chronoTimer = null; }
+    if (!this._chronoPaused && this._chronoStart) {
+      this._chronoAcc += Date.now() - this._chronoStart;
+    }
+    this._chronoStart = 0;
+  },
+  _toggleChrono() {
+    if (this._chronoPaused) {
+      this._chronoPaused = 0; this._chronoStart = Date.now();
+      this._chronoTimer = setInterval(() => this._tickChrono(), 1000);
+    } else {
+      if (this._chronoTimer) { clearInterval(this._chronoTimer); this._chronoTimer=null; }
+      this._chronoAcc += Date.now() - this._chronoStart;
+      this._chronoPaused = 1;
+      this._chronoStart = 0;
+    }
+    this._tickChrono();
+  },
+  _resetChrono() {
+    this._stopChrono();
+    this._chronoAcc = 0; this._chronoPaused=0;
+    if (this.sessao) this.sessao.iniciadaEm = Date.now();
+    this._startChrono();
+  },
+  _tickChrono() {
+    const el = document.getElementById("chrono-time");
+    if (!el) return;
+    el.textContent = this._formatHMS(this._elapsedMs());
+    const btn = document.getElementById("chrono-toggle");
+    if (btn) btn.textContent = this._chronoPaused ? "▶ RETOMAR" : "⏸ PAUSAR";
+  },
+  _chronoHTML() {
+    return `
+      <div class="chrono-bar">
+        <span class="chrono-label">⏱ TEMPO</span>
+        <span class="chrono-time" id="chrono-time">${this._formatHMS(this._elapsedMs())}</span>
+        <button class="btn btn-ghost chrono-btn" id="chrono-toggle" data-action="chrono-toggle">${this._chronoPaused?"▶ RETOMAR":"⏸ PAUSAR"}</button>
+        <button class="btn btn-ghost chrono-btn" data-action="chrono-reset">↺ ZERAR</button>
+      </div>`;
+  },
+
+  /* ================= CARDIO ================= */
+  _salvarCardioDraft() {
+    try {
+      const draft = {
+        mod: this._cardioMod,
+        vals: {
+          duracao: document.getElementById("cardio-duracao")?.value || "",
+          distancia: document.getElementById("cardio-distancia")?.value || "",
+          velocidade: document.getElementById("cardio-velocidade")?.value || "",
+          inclinacao: document.getElementById("cardio-inclinacao")?.value || "",
+          resistencia: document.getElementById("cardio-resistencia")?.value || "",
+          andares: document.getElementById("cardio-andares")?.value || "",
+          estilo: document.getElementById("cardio-estilo")?.value || "",
+          calorias: document.getElementById("cardio-calorias")?.value || "",
+          obs: document.getElementById("cardio-obs")?.value || ""
+        }
+      };
+      localStorage.setItem(this._cardioDraftKey, JSON.stringify(draft));
+    } catch(e){}
+  },
+  _carregarCardioDraft() {
+    try {
+      const raw = localStorage.getItem(this._cardioDraftKey);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch(e){ return null; }
+  },
+  _limparCardioDraft(){ try{ localStorage.removeItem(this._cardioDraftKey);}catch(e){} },
+
+  render_cardio(scr) {
+    const draft = this._carregarCardioDraft();
+    if (draft && draft.mod) this._cardioMod = draft.mod;
+    const mod = cardioModalidadePorId(this._cardioMod) || CARDIO_MODALIDADES[0];
+    const vals = draft?.vals || {};
+    const recentes = [...(State.s.cardios||[])].sort((a,b)=>b.data-a.data).slice(0,8);
+    const stats = Stats.cardioEstatisticas(State.s);
+    scr.innerHTML = `
+      <div class="workout-head">
+        <h1 class="workout-ex-name">🏃 Cardio</h1>
+        <p class="workout-sub">Registre sua atividade aeróbica</p>
+        <button class="btn btn-ghost" data-action="back" style="width:auto;margin:.6rem auto;padding:.4rem 1.2rem;font-size:.8rem;">← Taverna</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Modalidade</div>
+        <div class="cardio-modalidade-grid">
+          ${CARDIO_MODALIDADES.map(m=>`
+            <button class="cardio-mod-btn ${m.id===mod.id?"on":""}" data-action="select-cardio-mod" data-arg="${m.id}">${m.icone} ${m.nome}</button>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="panel" id="cardio-form">
+        <div class="panel-title">${mod.icone} ${mod.nome}</div>
+        ${this._cardioCamposHTML(mod, vals)}
+        <div id="cardio-derived" class="cardio-derived"></div>
+        <div id="cardio-erros" style="color:#ff9a80;margin:.5rem 0;"></div>
+        <button class="btn btn-primary" data-action="submit-cardio">💾 REGISTRAR CARDIO</button>
+        <p class="m-sub" style="text-align:center;color:var(--text-dim);font-size:.8rem;margin-top:.4rem;">Duração é obrigatória. Outros campos são opcionais.</p>
+      </div>
+
+      ${stats.total? `
+      <div class="panel">
+        <div class="panel-title">Estatísticas de Cardio</div>
+        <div class="kv-grid">
+          <div class="kv"><div class="k">Sessões</div><div class="v">${stats.total}</div></div>
+          <div class="kv"><div class="k">Tempo total</div><div class="v">${Math.floor(stats.tempo/60)}h ${stats.tempo%60}min</div></div>
+          <div class="kv"><div class="k">Distância</div><div class="v">${stats.dist.toFixed(1)} km</div></div>
+          <div class="kv"><div class="k">Mais praticada</div><div class="v">${stats.maisPraticada? (cardioModalidadePorId(stats.maisPraticada[0])?.nome||stats.maisPraticada[0])+" ("+stats.maisPraticada[1]+")":"—"}</div></div>
+          <div class="kv"><div class="k">Maior distância</div><div class="v">${stats.maiorDist.toFixed(1)} km</div></div>
+          <div class="kv"><div class="k">Maior duração</div><div class="v">${stats.maiorDur} min</div></div>
+          <div class="kv"><div class="k">Melhor pace</div><div class="v">${stats.melhorPace? this._formatPace(stats.melhorPace):"—"}</div></div>
+          <div class="kv"><div class="k">Frequência</div><div class="v">${stats.freq}/mês</div></div>
+        </div>
+      </div>`:""}
+
+      <div class="panel">
+        <div class="panel-title">Histórico Recente</div>
+        ${recentes.length? recentes.map(c=>{
+          const mm = cardioModalidadePorId(c.modalidade);
+          return `<div class="hist-entry cardio">
+            <span class="he-ex">${mm?mm.icone:""} ${mm?mm.nome:c.modalidade} · ${c.duracaoMin}min ${c.distanciaKm? "· "+c.distanciaKm+"km":""} ${c.paceMinPerKm? "· pace "+this._formatPace(c.paceMinPerKm):""}</span>
+            <span class="he-sets">${new Date(c.data).toLocaleDateString("pt-BR")}</span>
+            <button class="icon-btn danger" data-action="delete-cardio" data-arg="${c.id}" title="Apagar">✕</button>
+          </div>`;
+        }).join("") : `<p class="empty-msg">Nenhum cardio registrado ainda.</p>`}
+      </div>
+    `;
+    // listeners para draft e derivados
+    setTimeout(()=>{
+      const form = document.getElementById("cardio-form");
+      if (!form) return;
+      form.querySelectorAll("input,select,textarea").forEach(inp=>{
+        inp.addEventListener("input", ()=>{ this._salvarCardioDraft(); this._atualizarCardioDerivados(); });
+        inp.addEventListener("change", ()=>{ this._salvarCardioDraft(); this._atualizarCardioDerivados(); });
+      });
+      this._atualizarCardioDerivados();
+    },0);
+  },
+  _cardioCamposHTML(mod, vals){
+    const v = (k)=> escapar(vals[k]||"");
+    const field = (id, label, placeholder, type="number", extra="")=>`
+      <div class="form-field">
+        <label>${label}</label>
+        <input type="${type}" id="${id}" value="${v(id.replace("cardio-",""))}" placeholder="${placeholder}" ${extra}>
+        <div class="field-error" id="${id}-err"></div>
+      </div>`;
+    let html = "";
+    // duração sempre
+    const durH = Math.floor((parseFloat(vals.duracao)||0)/60);
+    const durM = (parseFloat(vals.duracao)||0)%60;
+    html += `
+      <div class="form-field">
+        <label>Duração (minutos) *</label>
+        <input type="number" id="cardio-duracao" inputmode="numeric" min="1" max="600" step="1" value="${v("duracao")}" placeholder="30">
+        <div class="field-error" id="cardio-duracao-err"></div>
+      </div>`;
+    if (mod.campos.includes("distancia")) html += field("cardio-distancia","Distância (km)","5.0", "number", 'min="0" max="300" step="0.1"');
+    if (mod.campos.includes("velocidade")) html += field("cardio-velocidade","Velocidade média (km/h)","10", "number", 'min="0" max="60" step="0.1"');
+    if (mod.campos.includes("pace")) html += `<p class="m-sub" style="text-align:center">Pace será calculado automaticamente (tempo + distância).</p>`;
+    if (mod.campos.includes("inclinacao")) html += field("cardio-inclinacao","Inclinação (%)","2", "number", 'min="0" max="60" step="0.5"');
+    if (mod.campos.includes("resistencia")) html += `
+      <div class="form-field"><label>Resistência / Nível</label><input type="text" id="cardio-resistencia" maxlength="20" value="${v("resistencia")}" placeholder="Nível 5"><div class="field-error" id="cardio-resistencia-err"></div></div>`;
+    if (mod.campos.includes("andares")) html += field("cardio-andares","Andares / Subidas","20", "number", 'min="0" max="5000" step="1"');
+    if (mod.campos.includes("estilo")) html += `
+      <div class="form-field"><label>Estilo</label><select id="cardio-estilo"><option value="">—</option>${["Livre","Crawl","Peito","Costas","Borboleta","Medley"].map(o=>`<option ${v("estilo")===o?"selected":""}>${o}</option>`).join("")}</select></div>`;
+    html += field("cardio-calorias","Calorias (kcal)","250", "number", 'min="0" max="20000" step="1"');
+    html += `<div class="form-field"><label>Observações</label><textarea id="cardio-obs" maxlength="200" placeholder="Sensação, terreno...">${v("obs")}</textarea></div>`;
+    return html;
+  },
+  _formatPace(p){
+    const m = Math.floor(p); const s = Math.round((p-m)*60); return `${m}:${String(s).padStart(2,"0")} /km`;
+  },
+  _atualizarCardioDerivados(){
+    const dur = parseFloat(document.getElementById("cardio-duracao")?.value);
+    const dist = parseFloat(document.getElementById("cardio-distancia")?.value);
+    const el = document.getElementById("cardio-derived");
+    if (!el) return;
+    if (dur>0 && dist>0) {
+      const pace = dur/dist; const vel = dist/(dur/60);
+      el.textContent = `→ Pace ${this._formatPace(pace)} · Vel ${vel.toFixed(1)} km/h`;
+    } else if (dur>0 && !isNaN(parseFloat(document.getElementById("cardio-velocidade")?.value)) && !dist) {
+      // nada
+      el.textContent = "";
+    } else el.textContent = "";
+  },
+  _salvarCardio(){
+    if (this._salvandoCardio) return;
+    this._salvandoCardio = true;
+    setTimeout(()=> this._salvandoCardio=false, 1200);
+    const mod = this._cardioMod || "esteira";
+    const get = id=> document.getElementById(id)?.value?.trim() ?? "";
+    const dados = {
+      modalidade: mod,
+      duracaoMin: get("cardio-duracao"),
+      distanciaKm: get("cardio-distancia"),
+      velocidade: get("cardio-velocidade"),
+      inclinacao: get("cardio-inclinacao"),
+      resistencia: get("cardio-resistencia"),
+      andares: get("cardio-andares"),
+      estilo: get("cardio-estilo"),
+      calorias: get("cardio-calorias"),
+      obs: get("cardio-obs")
+    };
+    // limpa erros anteriores
+    document.querySelectorAll(".field-error").forEach(e=> e.textContent="");
+    document.querySelectorAll(".input-err").forEach(e=> e.classList.remove("input-err"));
+    const res = State.addCardio(dados);
+    if (!res.ok) {
+      const errBox = document.getElementById("cardio-erros");
+      if (errBox) errBox.textContent = res.erros.join(" ");
+      // destaca campo duração
+      const dInp = document.getElementById("cardio-duracao");
+      if (dInp && (!dados.duracaoMin || isNaN(parseFloat(dados.duracaoMin)) || parseFloat(dados.duracaoMin)<=0)) {
+        dInp.classList.add("input-err");
+        const e = document.getElementById("cardio-duracao-err"); if(e) e.textContent = "Informe duração válida (1-600 min).";
+      }
+      this.toast("⚠ Corrija os campos destacados.");
+      return;
+    }
+    const info = Game.completarCardio(res.cardio);
+    this._limparCardioDraft();
+    this.updateHUD();
+    // celebração
+    const eventos = [];
+    for (const c of info.novasConq) eventos.push({ tipo:"conquista", icone:c.icone, nome:c.nome, desc:c.desc, xp:c.xp, ouro:c.ouro });
+    if (eventos.length) {
+      this.filaCelebracoes.push(...eventos);
+      this.proximaCelebracao();
+    }
+    this.toast(`🏃 Cardio registrado! +${info.xp} XP · 🪙 +${info.ouro}`);
+    this.floatXP(`+${info.xp} XP`);
+    this.render_cardio(document.getElementById("screen-cardio"));
+  },
+  confirmarDeleteCardio(id){
+    this.modal(`
+      <div class="m-icon">☠</div>
+      <h2>REMOVER CARDIO?</h2>
+      <p>Essa ação não pode ser desfeita.</p>
+      <div class="m-buttons">
+        <button class="btn btn-ghost" data-action="close-modal">CANCELAR</button>
+        <button class="btn btn-danger" data-action="confirm-delete-cardio" data-arg="${id}">REMOVER</button>
       </div>
     `);
   }
