@@ -4,13 +4,14 @@
 
 const SAVE_KEY = "exercitium_save_v1";
 const SESSAO_KEY = "exercitium_sessao_v1";
+const SCHEMA_VERSAO = 2;
 
 const State = {
   s: null, // estado atual
 
   novo() {
     return {
-      versao: 1,
+      versao: SCHEMA_VERSAO,
       criadoEm: Date.now(),
       personagem: {
         nome: "Aventureiro",
@@ -32,11 +33,43 @@ const State = {
       exercicios: [],       // personalizados [{id, nome, grupo, principal[], secundarios[], custom:true}]
       rotinas: [],          // [{id, nome, itens:[{exercicioId, series}]}]
       treinos: [],          // [{id, exercicioId, data, series:[{peso,reps}]}]
+      cardios: [],          // [{id, modalidade, data, duracaoMin, distanciaKm, ...}]
       recordes: {},         // por exercicioId: {maiorPeso:{valor,reps,data}, maiorReps:{...}, melhorSerie:{...}, melhorVolumeTreino:{...}, quebras}
       streak: { atual: 0, melhor: 0, ultimoDia: null },
       conquistas: {},       // id -> {data}
       config: { som: true }
     };
+  },
+
+  /* migração de músculos antigos para novos */
+  _migrarMusculos(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr.map(m => {
+      if (MUSCULOS.includes(m)) return m;
+      if (MUSCULO_ALIASES && MUSCULO_ALIASES[m]) return MUSCULO_ALIASES[m];
+      return m;
+    }).filter(m => MUSCULOS.includes(m));
+  },
+
+  migrar(parsed) {
+    // já na versão atual
+    if (parsed.versao === SCHEMA_VERSAO) return parsed;
+    if (!parsed.versao || parsed.versao < 2) {
+      // migrar exercícios custom com nomes antigos
+      if (Array.isArray(parsed.exercicios)) {
+        for (const ex of parsed.exercicios) {
+          ex.principal = this._migrarMusculos(ex.principal);
+          ex.secundarios = this._migrarMusculos(ex.secundarios);
+          // se vazio por migração, garante pelo menos um
+          if (!ex.principal.length && ex.secundarios.length) {
+            ex.principal = [ex.secundarios.shift()];
+          }
+        }
+      }
+      if (!Array.isArray(parsed.cardios)) parsed.cardios = [];
+      parsed.versao = 2;
+    }
+    return parsed;
   },
 
   load() {
@@ -45,19 +78,32 @@ const State = {
       if (!raw) return false;
       const parsed = JSON.parse(raw);
       if (!parsed || !parsed.personagem) return false;
+      // migração de schema
+      const migrado = this.migrar(parsed);
       // merge defensivo com estrutura nova (para saves antigos)
-      this.s = Object.assign(this.novo(), parsed);
-      this.s.personagem = Object.assign({ nome:"Aventureiro", nivel:1, xp:0, ouro:0 }, parsed.personagem);
-      this.s.streak = Object.assign({ atual:0, melhor:0, ultimoDia:null }, parsed.streak);
-      this.s.config = Object.assign({ som:true }, parsed.config);
+      this.s = Object.assign(this.novo(), migrado);
+      this.s.personagem = Object.assign({ nome:"Aventureiro", nivel:1, xp:0, ouro:0 }, migrado.personagem);
+      this.s.streak = Object.assign({ atual:0, melhor:0, ultimoDia:null }, migrado.streak);
+      this.s.config = Object.assign({ som:true }, migrado.config);
       // migração defensiva: campos novos em saves antigos
       if (!Array.isArray(this.s.rotinas)) this.s.rotinas = [];
       if (!Array.isArray(this.s.inventario)) this.s.inventario = [];
+      if (!Array.isArray(this.s.cardios)) this.s.cardios = [];
+      if (!Array.isArray(this.s.exercicios)) this.s.exercicios = [];
+      if (!Array.isArray(this.s.treinos)) this.s.treinos = [];
+      if (typeof this.s.recordes !== "object" || this.s.recordes === null) this.s.recordes = {};
+      if (typeof this.s.conquistas !== "object" || this.s.conquistas === null) this.s.conquistas = {};
       this.s.personagem.equipamento = Object.assign({
         cabeca: "elmo_ferro", corpo: "armadura_ferro", capa: "capa_nenhuma",
         luvas: "luvas_couro", calcas: "calcas_couro", botas: "botas_couro",
         acessorio: "colar_pano", arma: "espada_ferro"
-      }, parsed.personagem.equipamento || {});
+      }, migrado.personagem.equipamento || {});
+      // sanitizar cardios: remover entradas inválidas
+      this.s.cardios = this.s.cardios.filter(c => c && typeof c.duracaoMin === "number" && c.duracaoMin > 0);
+      if (migrado.versao !== SCHEMA_VERSAO) {
+        this.s.versao = SCHEMA_VERSAO;
+        this.save();
+      }
       return true;
     } catch (e) {
       console.error("Erro ao carregar save:", e);
@@ -73,7 +119,11 @@ const State = {
   },
 
   save() {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(this.s));
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(this.s));
+    } catch (e) {
+      console.error("Erro ao salvar:", e);
+    }
   },
 
   /* ---------- Exercícios ---------- */
@@ -87,18 +137,42 @@ const State = {
   },
 
   exercicioPorId(id) {
+    if (!id || typeof id !== "string") return null;
     if (id.startsWith("p")) {
       const idx = parseInt(id.slice(1), 10);
-      return BIBLIOTECA_PADRAO[idx] ? { id, padrao: true, ...BIBLIOTECA_PADRAO[idx] } : null;
+      if (!isNaN(idx) && BIBLIOTECA_PADRAO[idx]) return { id, padrao: true, ...BIBLIOTECA_PADRAO[idx] };
+      return null;
     }
     return this.s.exercicios.find(e => e.id === id) || null;
   },
 
+  sanitizarMusculos(principal, secundarios) {
+    const clean = (arr) => {
+      if (!Array.isArray(arr)) return [];
+      const mapped = arr.map(m => {
+        if (MUSCULOS.includes(m)) return m;
+        if (MUSCULO_ALIASES && MUSCULO_ALIASES[m]) return MUSCULO_ALIASES[m];
+        return null;
+      }).filter(Boolean);
+      return [...new Set(mapped)];
+    };
+    let p = clean(principal);
+    let s = clean(secundarios);
+    // evita intersecção
+    s = s.filter(m => !p.includes(m));
+    // garante pelo menos um principal
+    if (!p.length && s.length) p = [s.shift()];
+    if (!p.length) p = ["Peitoral"];
+    return { principal: p, secundarios: s };
+  },
+
   addExercicioCustom(nome, grupo, principal, secundarios) {
+    const clean = this.sanitizarMusculos(principal, secundarios);
     const ex = {
       id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      nome, grupo,
-      principal, secundarios,
+      nome: String(nome).trim().slice(0, 40) || "Exercício",
+      grupo: GRUPOS.includes(grupo) ? grupo : "Peito",
+      principal: clean.principal, secundarios: clean.secundarios,
       custom: true
     };
     this.s.exercicios.push(ex);
@@ -109,7 +183,12 @@ const State = {
   updateExercicioCustom(id, nome, grupo, principal, secundarios) {
     const ex = this.s.exercicios.find(e => e.id === id);
     if (!ex) return;
-    Object.assign(ex, { nome, grupo, principal, secundarios });
+    const clean = this.sanitizarMusculos(principal, secundarios);
+    Object.assign(ex, {
+      nome: String(nome).trim().slice(0, 40) || ex.nome,
+      grupo: GRUPOS.includes(grupo) ? grupo : ex.grupo,
+      principal: clean.principal, secundarios: clean.secundarios
+    });
     this.save();
   },
 
@@ -124,11 +203,13 @@ const State = {
   },
 
   addRotina(nome, itens) {
+    const cleanNome = String(nome).trim().slice(0, 40) || "Rotina";
     const r = {
       id: "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      nome,
-      itens: itens.map(i => ({ exercicioId: i.exercicioId, series: +i.series || 3 }))
+      nome: cleanNome,
+      itens: itens.filter(i => this.exercicioPorId(i.exercicioId)).map(i => ({ exercicioId: i.exercicioId, series: Math.max(1, Math.min(20, +i.series || 3)) }))
     };
+    if (!r.itens.length) return null;
     this.s.rotinas.push(r);
     this.save();
     return r;
@@ -137,7 +218,10 @@ const State = {
   updateRotina(id, nome, itens) {
     const r = this.rotinaPorId(id);
     if (!r) return;
-    Object.assign(r, { nome, itens: itens.map(i => ({ exercicioId: i.exercicioId, series: +i.series || 3 })) });
+    const cleanNome = String(nome).trim().slice(0, 40) || r.nome;
+    const cleanItens = itens.filter(i => this.exercicioPorId(i.exercicioId)).map(i => ({ exercicioId: i.exercicioId, series: Math.max(1, Math.min(20, +i.series || 3)) }));
+    if (!cleanItens.length) return;
+    Object.assign(r, { nome: cleanNome, itens: cleanItens });
     this.save();
   },
 
@@ -154,15 +238,112 @@ const State = {
   },
 
   addTreino(exId, series) {
+    if (!this.exercicioPorId(exId)) return null;
+    const cleanSeries = series.map(s => ({ peso: Math.max(0, +s.peso), reps: Math.max(1, Math.min(100, +s.reps|0)) }))
+      .filter(s => s.peso > 0 && s.reps > 0 && s.peso <= 1000);
+    if (!cleanSeries.length) return null;
     const t = {
       id: "t" + Date.now().toString(36),
       exercicioId: exId,
       data: Date.now(),
-      series: series.map(s => ({ peso: +s.peso, reps: +s.reps }))
+      series: cleanSeries
     };
     this.s.treinos.push(t);
     this.save();
     return t;
+  },
+
+  /* ---------- Cardio ---------- */
+  validarCardio(dados) {
+    const erros = [];
+    if (!dados.modalidade || !cardioModalidadePorId(dados.modalidade)) erros.push("Modalidade inválida.");
+    const dur = parseFloat(dados.duracaoMin);
+    if (isNaN(dur) || dur <= 0) erros.push("Duração deve ser maior que 0.");
+    else if (dur > 600) erros.push("Duração máxima é 600 minutos.");
+    if (dados.distanciaKm !== undefined && dados.distanciaKm !== "" && dados.distanciaKm !== null) {
+      const d = parseFloat(dados.distanciaKm);
+      if (isNaN(d) || d < 0) erros.push("Distância não pode ser negativa.");
+      else if (d > 300) erros.push("Distância máxima é 300 km.");
+    }
+    if (dados.calorias !== undefined && dados.calorias !== "" && dados.calorias !== null) {
+      const c = parseFloat(dados.calorias);
+      if (isNaN(c) || c < 0) erros.push("Calorias não pode ser negativa.");
+      else if (c > 20000) erros.push("Calorias muito altas.");
+    }
+    if (dados.inclinacao !== undefined && dados.inclinacao !== "" && dados.inclinacao !== null) {
+      const v = parseFloat(dados.inclinacao);
+      if (isNaN(v) || v < 0 || v > 60) erros.push("Inclinação deve estar entre 0 e 60.");
+    }
+    if (dados.andares !== undefined && dados.andares !== "" && dados.andares !== null) {
+      const v = parseInt(dados.andares, 10);
+      if (isNaN(v) || v < 0 || v > 5000) erros.push("Andares inválido.");
+    }
+    return erros;
+  },
+
+  addCardio(dados) {
+    const erros = this.validarCardio(dados);
+    if (erros.length) return { ok: false, erros };
+    const modalidade = dados.modalidade;
+    const dur = Math.max(1, Math.min(600, parseFloat(dados.duracaoMin)));
+    const distRaw = dados.distanciaKm;
+    const dist = (distRaw === "" || distRaw == null) ? null : Math.max(0, Math.min(300, parseFloat(distRaw)));
+    const calRaw = dados.calorias;
+    const calorias = (calRaw === "" || calRaw == null) ? null : Math.max(0, Math.min(20000, parseInt(calRaw,10)));
+    if (dist != null && isNaN(dist)) return { ok:false, erros:["Distância inválida"] };
+    // cálculo derivado
+    let velocidade = null, pace = null;
+    if (dist != null && dur > 0) {
+      velocidade = +(dist / (dur / 60)).toFixed(2); // km/h
+      const paceMin = dur / dist;
+      pace = isFinite(paceMin) ? paceMin : null;
+    }
+    if (dados.velocidade != null && dados.velocidade !== "" ) {
+      const v = parseFloat(dados.velocidade);
+      if (!isNaN(v) && v > 0) velocidade = Math.min(60, v);
+    }
+    const c = {
+      id: "k" + Date.now().toString(36) + Math.random().toString(36).slice(2,4),
+      modalidade,
+      data: Date.now(),
+      duracaoMin: dur,
+      distanciaKm: dist,
+      velocidadeKmH: velocidade,
+      paceMinPerKm: pace,
+      calorias,
+      inclinacao: dados.inclinacao != null && dados.inclinacao !== "" ? parseFloat(dados.inclinacao) : null,
+      resistencia: dados.resistencia != null && dados.resistencia !== "" ? String(dados.resistencia).slice(0,20) : null,
+      andares: dados.andares != null && dados.andares !== "" ? Math.max(0, Math.min(5000, parseInt(dados.andares,10))) : null,
+      estilo: dados.estilo ? String(dados.estilo).slice(0,30) : null,
+      obs: dados.obs ? String(dados.obs).slice(0, 200) : null
+    };
+    // sanitizar NaNs para null
+    if (c.inclinacao != null && isNaN(c.inclinacao)) c.inclinacao = null;
+    if (c.andares != null && isNaN(c.andares)) c.andares = null;
+    this.s.cardios.push(c);
+    this.save();
+    return { ok: true, cardio: c };
+  },
+
+  removeCardio(id) {
+    this.s.cardios = this.s.cardios.filter(c => c.id !== id);
+    this.save();
+  },
+
+  statsCardio() {
+    const cs = this.s.cardios || [];
+    if (!cs.length) return { total:0, tempo:0, dist:0, modalidades:{} };
+    const tempo = cs.reduce((n,c)=>n+(c.duracaoMin||0),0);
+    const dist = cs.reduce((n,c)=>n+(c.distanciaKm||0),0);
+    const porMod = {};
+    for (const c of cs) porMod[c.modalidade] = (porMod[c.modalidade]||0)+1;
+    const maisPraticada = Object.entries(porMod).sort((a,b)=>b[1]-a[1])[0];
+    const maiorDist = Math.max(...cs.map(c=>c.distanciaKm||0),0);
+    const maiorDur = Math.max(...cs.map(c=>c.duracaoMin||0),0);
+    // melhor pace (menor min/km) entre os que têm pace
+    const paces = cs.filter(c=>c.paceMinPerKm && c.paceMinPerKm>0 && c.distanciaKm>0).map(c=>c.paceMinPerKm);
+    const melhorPace = paces.length ? Math.min(...paces) : null;
+    return { total: cs.length, tempo, dist, porMod, maisPraticada, maiorDist, maiorDur, melhorPace };
   },
 
   /* ---------- Recordes de um exercício ---------- */
@@ -206,10 +387,23 @@ const State = {
       if (!data || typeof data !== "object" || !data.personagem) {
         throw new Error("Formato inválido");
       }
-      this.s = Object.assign(this.novo(), data);
+      if (typeof data.personagem.nivel !== "number" || data.personagem.nivel < 1 || data.personagem.nivel > 999) {
+        throw new Error("Nível inválido");
+      }
+      const migrado = this.migrar(Object.assign(this.novo(), data));
+      // valida estruturas críticas
+      if (data.treinos && !Array.isArray(data.treinos)) throw new Error("Treinos inválido");
+      if (data.cardios && !Array.isArray(data.cardios)) throw new Error("Cardios inválido");
+      this.s = Object.assign(this.novo(), migrado);
+      // merge defensivo já feito no migrar, mas garante novamente
+      this.s.personagem = Object.assign({ nome:"Aventureiro", nivel:1, xp:0, ouro:0 }, migrado.personagem);
+      this.s.streak = Object.assign({ atual:0, melhor:0, ultimoDia:null }, migrado.streak);
+      this.s.config = Object.assign({ som:true }, migrado.config);
+      if (!Array.isArray(this.s.cardios)) this.s.cardios = [];
       this.save();
       return true;
     } catch (e) {
+      console.error("Import falhou:", e);
       return false;
     }
   },
@@ -231,7 +425,9 @@ const State = {
     const dados = JSON.parse(JSON.stringify(sessao));
     dados.status = "in_progress";
     dados.salvoEm = Date.now();
-    localStorage.setItem(SESSAO_KEY, JSON.stringify(dados));
+    try {
+      localStorage.setItem(SESSAO_KEY, JSON.stringify(dados));
+    } catch(e) {}
   },
 
   carregarSessao() {
@@ -257,6 +453,7 @@ const State = {
   /* ---------- Cosméticos do guerreiro ---------- */
   comprarCosmetico(id, preco) {
     const p = this.s.personagem;
+    if (typeof preco !== "number" || preco <= 0) return false;
     if (p.ouro < preco) return false;
     if (this.s.inventario.includes(id)) return false;
     p.ouro -= preco;
@@ -267,6 +464,12 @@ const State = {
 
   equiparCosmetico(slot, id) {
     if (!this.s.personagem.equipamento) return false;
+    if (!Warrior || !Warrior.SLOTS || !Warrior.SLOTS[slot]) return false;
+    const exists = Warrior.porId(id);
+    if (!exists || exists.slot !== slot) {
+      // permite padrão mesmo se não listado
+      if (id !== Warrior.SLOTS[slot].padrao) return false;
+    }
     this.s.personagem.equipamento[slot] = id;
     this.save();
     return true;
