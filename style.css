@@ -1297,6 +1297,40 @@ button {
   .stat-value { font-size: 1.3rem; }
 }
 
+/* ================= CRONÔMETRO / CARDIO ================= */
+.chrono-bar {
+  display:flex; align-items:center; justify-content:center; gap:.6rem;
+  padding:.5rem .8rem; margin-bottom:.8rem;
+  background: linear-gradient(180deg, #1a1208, #0e0803);
+  border:1px solid var(--border); border-radius:2px;
+  font-family:var(--font-pixel); font-size:1.35rem; color:var(--gold-bright);
+  box-shadow: inset 0 1px 4px rgba(0,0,0,.6);
+}
+.chrono-bar .chrono-label { font-size:.85rem; color:var(--text-dim); letter-spacing:.1em; }
+.chrono-bar .chrono-time { min-width:72px; text-align:center; }
+.chrono-bar .chrono-btn { font-size:.75rem; padding:.3rem .7rem; width:auto; }
+.field-error { color:#ff9a80; font-size:.82rem; margin-top:.2rem; font-family:var(--font-body); }
+.input-err { box-shadow: inset 0 0 0 1px #c0392b !important; border-color:#c0392b !important; }
+.hist-entry.cardio { border-left-color:#5b8fb8; }
+.hist-entry.cardio .he-ex { color:#7fb0d0; }
+.cardio-modalidade-grid { display:grid; grid-template-columns:1fr 1fr; gap:.45rem; margin-bottom:.8rem; }
+.cardio-mod-btn {
+  padding:.6rem .5rem; text-align:center;
+  background:linear-gradient(180deg,var(--panel),var(--panel-2));
+  border:1px solid var(--border); border-radius:2px;
+  font-family:var(--font-title); font-size:.78rem; color:var(--text);
+}
+.cardio-mod-btn.on { border-color:var(--gold); color:var(--gold-bright); box-shadow: inset 0 0 0 1px var(--gold); }
+.cardio-derived { font-family:var(--font-pixel); color:var(--xp); font-size:.95rem; text-align:center; margin:.4rem 0; }
+.mapa-detalhe summary { list-style:none; }
+.mapa-detalhe summary::-webkit-details-marker { display:none; }
+.gm.sub { margin-left:.6rem; opacity:.95; }
+.gm-nome.sub { font-size:.72rem; }
+.gm-pips.small { font-size:.82rem; }
+.gm-pct.small { font-size:.88rem; }
+.gm-bar.small { height:6px; }
+.gm-grupo-title { font-family:var(--font-title); font-size:.72rem; letter-spacing:.14em; color:var(--bronze); text-transform:uppercase; margin-bottom:.2rem; display:flex; justify-content:space-between; }
+
 /* telas muito estreitas: empilha peso × reps sem comprimir */
 @media (max-width: 330px) {
   .inputs-grid { grid-template-columns: 1fr; gap: .55rem; }

@@ -81,6 +81,40 @@ const Stats = (() => {
     return vol;
   }
 
+  function cardioEstatisticas(s) {
+    const cs = s.cardios || [];
+    const tempo = cs.reduce((n,c)=>n+(c.duracaoMin||0),0);
+    const dist = cs.reduce((n,c)=>n+(c.distanciaKm||0),0);
+    const porMod = {};
+    for (const c of cs) porMod[c.modalidade] = (porMod[c.modidade]||porMod[c.modalidade]||0)+1;
+    // fix typo: use correct key
+    const acc = {};
+    for (const c of cs) acc[c.modalidade] = (acc[c.modalidade]||0)+1;
+    const mais = Object.entries(acc).sort((a,b)=>b[1]-a[1])[0] || null;
+    const maiorDist = cs.length ? Math.max(...cs.map(c=>c.distanciaKm||0)) : 0;
+    const maiorDur = cs.length ? Math.max(...cs.map(c=>c.duracaoMin||0)) : 0;
+    const paces = cs.filter(c=>c.paceMinPerKm && c.paceMinPerKm>0).map(c=>c.paceMinPerKm);
+    const melhorPace = paces.length ? Math.min(...paces) : null;
+    const periodo = {};
+    for (const c of cs) {
+      const d = new Date(c.data); const chave = d.toISOString().slice(0,7);
+      periodo[chave] = (periodo[chave]||0)+(c.duracaoMin||0);
+    }
+    const freq = cs.length ? (cs.length / Math.max(1, Object.keys(periodo).length)).toFixed(1) : 0;
+    return { total: cs.length, tempo, dist, porModalidade: acc, maisPraticada: mais, maiorDist, maiorDur, melhorPace, freq };
+  }
+
+  function cardioVolumePorPeriodo(s, modo, limite) {
+    const acc = {};
+    for (const c of s.cardios || []) {
+      const d = new Date(c.data);
+      const chave = modo === "semana" ? chaveSemana(c.data) : d.toISOString().slice(0,7);
+      acc[chave] = (acc[chave]||0)+(c.duracaoMin||0);
+    }
+    const chaves = Object.keys(acc).sort().slice(-limite);
+    return chaves.map(chave=>({ chave, label: modo==="semana"?rotuloSemana(chave):new Date(chave+"-01T12:00:00").toLocaleDateString("pt-BR",{month:"short"}), valor: Math.round(acc[chave]) }));
+  }
+
   /* ---- evolução de um exercício (sessões em ordem cronológica) ---- */
   function evolucaoExercicio(exId) {
     const sessoes = State.treinosDoExercicio(exId)
@@ -95,5 +129,5 @@ const Stats = (() => {
     return sessoes;
   }
 
-  return { gerais, volumePorPeriodo, volumePorGrupo, evolucaoExercicio };
+  return { gerais, volumePorPeriodo, volumePorGrupo, evolucaoExercicio, cardioEstatisticas, cardioVolumePorPeriodo };
 })();
