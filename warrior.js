@@ -193,7 +193,6 @@ const Warrior = (() => {
   const porId = id => COSMETICOS.find(c => c.id === id) || null;
   const estiloDe = id => ESTILOS[id] || null;
   function equipado(s, slot) {
-    // ids de versões antigas que não existem mais caem no padrão do slot
     const map = s.personagem.equipamento || {};
     const id = map[slot] || SLOTS[slot].padrao;
     return porId(id) ? id : SLOTS[slot].padrao;
@@ -227,10 +226,9 @@ const Warrior = (() => {
     if (!c) return false;
     if (c.origem.tipo === "padrao") return true;
     if (c.origem.tipo === "loja") return Array.isArray(s.inventario) && s.inventario.includes(id);
-    return requisitoAtendido(s, c.origem); // recompensas são derivadas do progresso
+    return requisitoAtendido(s, c.origem);
   }
 
-  /* estado de um item na loja/inventário */
   function statusItem(s, item) {
     if ((s.personagem.equipamento || {})[item.slot] === item.id)
       return { acao: "equipado", motivo: "Equipado" };
@@ -248,33 +246,47 @@ const Warrior = (() => {
     return { acao: "reivindicar", motivo: "Recompensa desbloqueada!" };
   }
 
-  /* ---- agrupamento em 6 grandes grupos + níveis de treino ----
-     série em exercício principal vale 1 ponto; secundário, 0.5     */
+  /* ---- cálculo muscular com pesos centralizados ---- */
   function calcMusculos(s) {
     const vol = {};
+    const pesoP = (typeof PESO_PRINCIPAL !== "undefined" ? PESO_PRINCIPAL : 1.0);
+    const pesoS = (typeof PESO_SECUNDARIO !== "undefined" ? PESO_SECUNDARIO : 0.5);
     for (const t of s.treinos) {
       const ex = State.exercicioPorId(t.exercicioId);
       if (!ex) continue;
       const n = t.series.length;
-      for (const m of ex.principal) vol[m] = (vol[m] || 0) + n;
-      for (const m of ex.secundarios) vol[m] = (vol[m] || 0) + n * 0.5;
+      for (const m of ex.principal) vol[m] = (vol[m] || 0) + n * pesoP;
+      for (const m of ex.secundarios) vol[m] = (vol[m] || 0) + n * pesoS;
     }
     return vol;
   }
 
   const pctDe = vol => Math.min(100, Math.round((vol || 0) / CAP_PONTOS * 100));
 
-  /* ---- agrupamento em 6 grandes grupos + níveis de treino ----
-     Nível muscular (pontos = séries-equivalentes, teto 50):
-       0 Não treinado · I Iniciante · II Desenvolvido ·
-       III Avançado · IV Elite                                    */
+  // curva suave para visual (evita desproporção)
+  function curvaPct(pct) {
+    const n = Math.min(1, Math.max(0, pct / 100));
+    return Math.pow(n, 0.72); // 0.72 torna início mais perceptível e topo mais contido
+  }
+
+  /* ---- agrupamentos macro + detalhamento fino ---- */
   const MACRO = [
     { nome: "Peito",  musculos: ["Peitoral"] },
-    { nome: "Costas", musculos: ["Costas"] },
-    { nome: "Ombros", musculos: ["Ombros"] },
-    { nome: "Braços", musculos: ["Bíceps", "Tríceps", "Antebraço"] },
+    { nome: "Costas", musculos: ["Dorsais", "Trapézio"] },
+    { nome: "Ombros", musculos: ["Deltoide Anterior", "Deltoide Lateral", "Deltoide Posterior"] },
+    { nome: "Braços", musculos: ["Bíceps", "Tríceps", "Braquial", "Flexores do Antebraço", "Extensores do Antebraço"] },
     { nome: "Pernas", musculos: ["Quadríceps", "Posterior", "Glúteos", "Panturrilha"] },
-    { nome: "Core",   musculos: ["Core"] }
+    { nome: "Core",   musculos: ["Abdômen", "Lombar"] }
+  ];
+
+  // para renderização detalhada do mapa (ordem sugerida no spec)
+  const DETALHE_MAPA = [
+    { grupo: "Peito", itens: ["Peitoral"] },
+    { grupo: "Costas", itens: ["Dorsais", "Trapézio"] },
+    { grupo: "Ombros", itens: ["Deltoide Anterior", "Deltoide Lateral", "Deltoide Posterior"] },
+    { grupo: "Braços", itens: ["Bíceps", "Tríceps", "Braquial", "Flexores do Antebraço", "Extensores do Antebraço"] },
+    { grupo: "Pernas", itens: ["Quadríceps", "Posterior", "Glúteos", "Panturrilha"] },
+    { grupo: "Core", itens: ["Abdômen", "Lombar"] }
   ];
 
   const NIVEIS_MUSCULARES = [
@@ -289,7 +301,6 @@ const Warrior = (() => {
     return p <= 0 ? 0 : p < 13 ? 1 : p < 26 ? 2 : p < 38 ? 3 : 4;
   }
 
-  /* pontos por grupo macro */
   function gruposMacroPontos(s) {
     const v = calcMusculos(s);
     return MACRO.map(({ nome, musculos }) => ({
@@ -305,7 +316,6 @@ const Warrior = (() => {
     return { lvl, ...NIVEIS_MUSCULARES[lvl] };
   }
 
-  /* fatia % de cada grupo macro no volume total (soma = 100) */
   function balanco(s) {
     const gs = gruposMacroPontos(s);
     const total = gs.reduce((n, g) => n + g.pontos, 0);
@@ -321,34 +331,40 @@ const Warrior = (() => {
     return res;
   }
 
-  /* percentual (0–100) por grupo muscular fino (mantido p/ compatibilidade) */
+  /* percentual fino + aliases legados para compatibilidade */
   function mapaPct(s) {
     const v = calcMusculos(s);
-    return {
-      "Peitoral":    pctDe(v["Peitoral"]),
-      "Costas":      pctDe(v["Costas"]),
-      "Ombros":      pctDe(v["Ombros"]),
-      "Bíceps":      pctDe(v["Bíceps"]),
-      "Tríceps":     pctDe(v["Tríceps"]),
-      "Quadríceps":  pctDe(v["Quadríceps"]),
-      "Posterior":   pctDe(v["Posterior"]),
-      "Glúteos":     pctDe(v["Glúteos"]),
-      "Core":        pctDe(v["Core"]),
-      "Panturrilha": pctDe(v["Panturrilha"])
-    };
+    const base = {};
+    for (const m of MUSCULOS) base[m] = pctDe(v[m]);
+    // aliases legados
+    base["Costas"] = base["Dorsais"] || 0;
+    base["Ombros"] = Math.round((base["Deltoide Anterior"] + base["Deltoide Lateral"] + base["Deltoide Posterior"]) / 3);
+    base["Core"] = Math.round((base["Abdômen"] + (base["Lombar"]||0)) / 2);
+    base["Antebraço"] = Math.round(((base["Flexores do Antebraço"]||0) + (base["Extensores do Antebraço"]||0))/2);
+    // compat: Posterior já é o nome interno; mantém
+    return base;
   }
 
-  /* ---- mapa RELATIVO ao total treinado ----
-     Cada grupo recebe sua fatia do volume total (soma = 100%).
-     A cor acompanha a proporção: o grupo mais treinado fica no
-     vermelho intenso; os demais, proporcionais a ele (escala de
-     calor dourado -> vermelho). Ex.: só tríceps+ombros+peito
-     treinados => cada um ~33%, todos em tom avermelhado forte. */
+  // detalhado por músculo individual
+  function mapaDetalhado(s) {
+    const v = calcMusculos(s);
+    return MUSCULOS.map(m => ({
+      nome: m,
+      vol: v[m] || 0,
+      pct: pctDe(v[m]),
+      lvl: nivelDePontos(v[m] || 0)
+    }));
+  }
+
   function mapaRelativo(s) {
     const v = calcMusculos(s);
     const grupos = [
-      "Peitoral", "Costas", "Ombros", "Bíceps", "Tríceps",
-      "Quadríceps", "Posterior", "Glúteos", "Core", "Panturrilha"
+      "Peitoral", "Dorsais", "Trapézio",
+      "Deltoide Anterior", "Deltoide Lateral", "Deltoide Posterior",
+      "Bíceps", "Tríceps", "Braquial",
+      "Flexores do Antebraço", "Extensores do Antebraço",
+      "Quadríceps", "Posterior", "Glúteos", "Panturrilha",
+      "Abdômen", "Lombar"
     ];
     const total = grupos.reduce((n, g) => n + (v[g] || 0), 0);
     const res = grupos.map(g => ({
@@ -357,7 +373,6 @@ const Warrior = (() => {
       share: total > 0 ? (v[g] || 0) / total * 100 : 0
     }));
     if (total > 0) {
-      // arredonda e fecha a soma exata em 100%, ajustando o maior grupo
       for (const g of res) g.share = Math.round(g.share);
       const maior = res.reduce((a, b) => (b.share > a.share ? b : a), res[0]);
       maior.share += 100 - res.reduce((n, g) => n + g.share, 0);
@@ -365,29 +380,47 @@ const Warrior = (() => {
     return res;
   }
 
-  /* escala de calor: ratio 0 = dourado apagado, 1 = vermelho intenso */
   function calor(ratio, alpha) {
-    const r = Math.round(184 + (196 - 184) * ratio);   // 184 -> 196
-    const g = Math.round(146 + (58 - 146) * ratio);    // 146 -> 58
-    const b = Math.round(58 + (42 - 58) * ratio);      // 58 -> 42
+    const r = Math.round(184 + (196 - 184) * ratio);
+    const g = Math.round(146 + (58 - 146) * ratio);
+    const b = Math.round(58 + (42 - 58) * ratio);
     return `rgba(${r},${g},${b},${alpha})`;
   }
 
-  /* fatores corporais 0–1 usados para dimensionar o desenho */
   function fatores(p) {
-    const f = x => Math.min(1, (x || 0) / 100);
+    // p é mapa pct (0-100)
+    const f = x => curvaPct(Math.min(100, x||0));
+    // deltoides individuais
+    const fTrap = f(p["Trapézio"]);
+    const fAnt = f(p["Deltoide Anterior"]);
+    const fLat = f(p["Deltoide Lateral"]);
+    const fPost = f(p["Deltoide Posterior"]);
     return {
-      torso:  f(Math.max(p["Peitoral"], p["Costas"])),
-      ombros: f(p["Ombros"]),
-      bracos: f(Math.max(p["Bíceps"], p["Tríceps"])),
-      pernas: f(Math.max(p["Quadríceps"], p["Posterior"], p["Glúteos"], p["Panturrilha"])),
-      core:   f(p["Core"])
+      torso:  f(Math.max(p["Peitoral"]||0, p["Dorsais"]||0, p["Costas"]||0)),
+      ombros: f(Math.max(p["Deltoide Lateral"]||0, p["Deltoide Anterior"]||0, p["Ombros"]||0)),
+      trap: fTrap,
+      lateral: fLat,
+      anterior: fAnt,
+      posterior: fPost,
+      bracos: f(Math.max(p["Bíceps"]||0, p["Tríceps"]||0, p["Braquial"]||0)),
+      biceps: f(p["Bíceps"]),
+      triceps: f(p["Tríceps"]),
+      braquial: f(p["Braquial"]),
+      flexores: f(p["Flexores do Antebraço"]),
+      extensores: f(p["Extensores do Antebraço"]),
+      pernas: f(Math.max(p["Quadríceps"]||0, p["Posterior"]||0, p["Glúteos"]||0, p["Panturrilha"]||0)),
+      quad: f(p["Quadríceps"]),
+      posteriorCoxa: f(p["Posterior"]),
+      gluteos: f(p["Glúteos"]),
+      pant: f(p["Panturrilha"]),
+      core:   f(Math.max(p["Abdômen"]||0, p["Core"]||0)),
+      abdomen: f(p["Abdômen"]),
+      lombar: f(p["Lombar"])
     };
   }
 
   /* ---- desenho do guerreiro (SVG em camadas) ---- */
   function svg(s, opts = {}) {
-    // prévia da Forja: opts.equipamento sobrepõe temporariamente os slots
     if (opts.equipamento) {
       s = { ...s, personagem: { ...s.personagem,
         equipamento: { ...s.personagem.equipamento, ...opts.equipamento } } };
@@ -400,12 +433,20 @@ const Warrior = (() => {
     const stCorpo = estiloDe(idCorpo) || {};
     const bulk     = stCorpo.bulk != null ? stCorpo.bulk : 1.5;
 
-    const sh    = 17 + f.ombros * 9 + bulk * 1.6;   // ombros alargam com armadura
-    const waist = 11 + f.core * 4 + bulk * .8;      // cintura também engrossa
-    const legW  = 9 + f.pernas * 7;
-    const armW  = 8 + f.bracos * 6 + bulk * .7;     // braços mais volumosos
+    // ombros: lateral domina largura, anterior/posterior contribuem menos
+    const ombrosComp = f.lateral*0.6 + f.anterior*0.2 + f.posterior*0.2;
+    const sh    = 17 + ombrosComp * 9 + bulk * 1.6;
+    const waist = 11 + f.core * 4 + bulk * .8;
+    const quadW = 9 + f.quad * 4.5 + f.gluteos*1.2;
+    const postW = 8 + f.posteriorCoxa * 4;
+    const gluteH = 3 + f.gluteos * 5.5;
+    const trapW = 8 + f.trap * 6;
+    const legW  = 9 + f.pernas * 7; // fallback compat
+    // braços: bíceps+braquial vs tríceps; antebraço separado
+    const upperW = 8 + Math.max(f.biceps,f.braquial,f.triceps)*6 + bulk * .7;
+    const foreW  = 6.5 + Math.max(f.flexores, f.extensores)*4.5;
     let   pdR   = (idCorpo === "tunica_pano" ? 3.2 : 5.5)
-                + f.ombros * 4.5 + bulk * .9;       // pauldrons crescem com o bulk
+                + ombrosComp * 4.5 + bulk * .9;
 
     const stCab   = estiloDe(equipado(s, "cabeca"));
     const idCab   = equipado(s, "cabeca");
@@ -418,14 +459,12 @@ const Warrior = (() => {
 
     const uid = "wg" + Math.random().toString(36).slice(2, 7);
 
-    // aura discreta que cresce com o nível muscular geral
     const rk = rankGuerreiro(s);
     const aura = rk.lvl > 0
       ? `<ellipse cx="${cx}" cy="88" rx="${42 + rk.lvl * 2.5}" ry="${68 + rk.lvl * 2}"
            fill="rgba(184,146,58,${(.05 + .03 * rk.lvl).toFixed(2)})"/>`
       : "";
 
-    // camada: capa (atrás de tudo; ausente se "Sem Capa")
     let capa = "";
     if (idCapa !== "capa_nenhuma" && stCapa) {
       const comp = stCapa.comp || 120;
@@ -451,30 +490,45 @@ const Warrior = (() => {
         ${hem}${pele}${orna}`;
     }
 
-    // camada: pernas + grevas
+    // pernas com glúteos e posteriores separados
     let pernas = "";
     const bH = stBotas.h || 17;
     const bExtra = stBotas.pesada ? 1.5 : 0;
     for (const side of [-1, 1]) {
-      const lx = side < 0 ? cx - 4 - legW : cx + 4;
+      const lx = side < 0 ? cx - 4 - quadW : cx + 4;
+      // glúteo como volume extra atrás
+      const glute = `<ellipse cx="${lx + quadW/2}" cy="91" rx="${quadW*0.55}" ry="${gluteH}" fill="${stCalc.cor}" stroke="#171009" opacity="${0.35 + f.gluteos*0.45}"/>`;
+      // coxa posterior (atrás) sutil faixa
+      const post = `<rect x="${lx}" y="98" width="${quadW}" height="18" rx="2" fill="#2b1d0c" opacity="${0.18 + f.posteriorCoxa*0.32}" stroke="none"/>`;
       pernas += `
-        <rect x="${lx}" y="93" width="${legW}" height="${126 - 93}" rx="2" fill="${stCalc.cor}" stroke="#171009"/>
-        <rect x="${lx - 1 - bExtra}" y="${140 - bH}" width="${legW + 2 + bExtra * 2}" height="${bH}" rx="2"
+        ${glute}
+        <rect x="${lx}" y="93" width="${quadW}" height="${126 - 93}" rx="2" fill="${stCalc.cor}" stroke="#171009"/>
+        ${post}
+        <rect x="${lx - 1 - bExtra}" y="${140 - bH}" width="${quadW + 2 + bExtra * 2}" height="${bH}" rx="2"
               fill="${stBotas.cor}" stroke="#171009"/>
-        <rect x="${lx - 1 - bExtra}" y="${140 - bH}" width="${legW + 2 + bExtra * 2}" height="3" fill="#ffffff" opacity=".12"/>
-        ${stBotas.joelho ? `<circle cx="${lx + legW / 2}" cy="${140 - bH}" r="2.4" fill="#c9ced6" stroke="#171009"/>` : ""}
-        ${stBotas.tira ? `<rect x="${lx - 1 - bExtra}" y="${140 - bH + 5}" width="${legW + 2 + bExtra * 2}" height="2.5" fill="#97814f"/>` : ""}`;
+        <rect x="${lx - 1 - bExtra}" y="${140 - bH}" width="${quadW + 2 + bExtra * 2}" height="3" fill="#ffffff" opacity=".12"/>
+        ${stBotas.joelho ? `<circle cx="${lx + quadW / 2}" cy="${140 - bH}" r="2.4" fill="#c9ced6" stroke="#171009"/>` : ""}
+        ${stBotas.tira ? `<rect x="${lx - 1 - bExtra}" y="${140 - bH + 5}" width="${quadW + 2 + bExtra * 2}" height="2.5" fill="#97814f"/>` : ""}`;
     }
 
-    // camada: torso (largura por peito/costas, cintura por core)
+    // trapézio como triângulo atrás do pescoço
+    const trapezio = f.trap > 0.02 ? `
+      <path d="M ${cx - trapW},38 Q ${cx},30 ${cx + trapW},38 L ${cx + trapW*0.7},44 Q ${cx},42 ${cx - trapW*0.7},44 Z"
+            fill="${stCorpo.medio}" stroke="${stCorpo.escuro}" stroke-width="1" opacity="${0.45 + f.trap*0.45}"/>` : "";
+
     const torso = `
+      ${trapezio}
       <path d="M ${cx - sh},40 Q ${cx},36 ${cx + sh},40
                L ${cx + waist + 2},91 L ${cx - waist - 2},91 Z"
             fill="url(#${uid}-m)" stroke="${stCorpo.escuro}" stroke-width="1.5"/>
+      <!-- peitoral: duas metades com destaque por Anterior vs Peitoral -->
       <path d="M ${cx - sh * .62},53 Q ${cx - sh * .31},60 ${cx},54
                Q ${cx + sh * .31},60 ${cx + sh * .62},53"
             stroke="${stCorpo.escuro}" fill="none" stroke-width="1.6"
             opacity="${(.3 + f.torso * .6).toFixed(2)}"/>
+      <!-- deltoide anterior como brilho frontal -->
+      <ellipse cx="${cx - sh*0.72}" cy="46" rx="${2.2 + f.anterior*3}" ry="${3 + f.anterior*3.5}" fill="#ffffff" opacity="${0.06 + f.anterior*0.14}" stroke="none"/>
+      <ellipse cx="${cx + sh*0.72}" cy="46" rx="${2.2 + f.anterior*3}" ry="${3 + f.anterior*3.5}" fill="#ffffff" opacity="${0.06 + f.anterior*0.14}" stroke="none"/>
       <path d="M ${cx},60 L ${cx},72 M ${cx - 5},64 L ${cx + 5},64 M ${cx - 4},70 L ${cx + 4},70"
             stroke="${stCorpo.escuro}" stroke-width="1.2" fill="none"
             opacity="${(.15 + f.core * .55).toFixed(2)}"/>
@@ -506,23 +560,39 @@ const Warrior = (() => {
           return `<path d="M ${cx - 6},48 Q ${cx},53 ${cx + 6},48" fill="none" stroke="${stAcc.cordao}" stroke-width="1.2"/>`;
         })()}`;
 
-    // camada: braços + bracers + mãos
+    // braços com antebraço segmentado
     let bracos = "";
     for (const side of [-1, 1]) {
       const px = cx + side * (sh - 2);
+      const biR = 3 + f.biceps*2.2;
+      const triExtra = f.triceps*1.6;
+      const braExtra = f.braquial*1.2;
+      // antebraço flexores vs extensores como dois semi-retângulos
+      const flexW = foreW * (0.55 + f.flexores*0.22);
+      const extW = foreW * (0.45 + f.extensores*0.22);
       bracos += `
         <g transform="rotate(${side * 9} ${px} 47)">
-          <rect x="${px - armW / 2}" y="44" width="${armW}" height="30" rx="${armW / 2}"
+          <!-- bíceps / tríceps volume -->
+          <rect x="${px - upperW / 2}" y="44" width="${upperW}" height="30" rx="${upperW / 2}"
                 fill="${stCorpo.medio}" stroke="#171009"/>
-          <rect x="${px - armW / 2}" y="70" width="${armW}" height="16" rx="2"
+          <!-- destaque braquial -->
+          <ellipse cx="${px}" cy="58" rx="${biR + braExtra}" ry="${5 + f.braquial*3}" fill="#ffffff" opacity="${0.07 + f.braquial*0.12}" stroke="none"/>
+          <!-- tríceps posterior -->
+          <rect x="${px - upperW/2 + (side<0? upperW*0.15:0)}" y="46" width="${upperW*0.28 + triExtra}" height="26" rx="2" fill="#000" opacity="${0.10 + f.triceps*0.18}"/>
+          <!-- antebraço dividido -->
+          <rect x="${px - foreW / 2}" y="70" width="${flexW}" height="16" rx="2"
                 fill="#4a2f18" stroke="#171009"/>
+          <rect x="${px - foreW/2 + flexW}" y="70" width="${extW}" height="16" rx="2"
+                fill="#5c3a20" stroke="#171009" opacity="${0.85 + f.extensores*0.15}"/>
           <circle cx="${px}" cy="89" r="3.2" fill="${stLuvas.cor}" stroke="#171009"/>
         </g>
+        <!-- deltoide lateral pauldrons (crescem com lateral) -->
         <circle cx="${px}" cy="46" r="${pdR}" fill="${stCorpo.claro}" stroke="#171009" stroke-width="1.4"/>
-        <circle cx="${px}" cy="46" r="${pdR * .45}" fill="none" stroke="${stCorpo.escuro}" opacity=".6"/>`;
+        <circle cx="${px}" cy="46" r="${pdR * .45}" fill="none" stroke="${stCorpo.escuro}" opacity=".6"/>
+        <!-- deltoide posterior brilho traseiro -->
+        <ellipse cx="${px}" cy="47" rx="${2 + f.posterior*2.5}" ry="${2.2 + f.posterior*2.8}" fill="#ffffff" opacity="${f.posterior*0.12}" />`;
     }
 
-    // camada: cabeça + capacete (cada elmo muda a silhueta da cabeça)
     let cabeca = `
       <rect x="${cx - 3}" y="31" width="6" height="7" fill="#b98d63" stroke="#171009"/>
       <circle cx="${cx}" cy="25" r="8.5" fill="#c79b6f" stroke="#171009"/>`;
@@ -573,14 +643,12 @@ const Warrior = (() => {
               fill="${stCab.detalhe}" stroke="${stCab.escuro}" stroke-width=".9"/>
         <rect x="${cx - 10.5}" y="23.5" width="21" height="2.4" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width=".8"/>
         <line x1="${cx - 5}" y1="28" x2="${cx + 5}" y2="28" stroke="#171009" stroke-width="1.6"/>
-        <!-- asas laterais -->
         <path d="M ${cx - 10},22 Q ${cx - 18},14 ${cx - 14},6 Q ${cx - 8},12 ${cx - 9},20 Z"
               fill="${stCab.asa}" stroke="${stCab.escuro}" stroke-width=".8"/>
         <path d="M ${cx + 10},22 Q ${cx + 18},14 ${cx + 14},6 Q ${cx + 8},12 ${cx + 9},20 Z"
               fill="${stCab.asa}" stroke="${stCab.escuro}" stroke-width=".8"/>`;
 
     } else {
-      // elmo_ferro e elmo_simples: domo simples (cores diferentes)
       cabeca += `
         <path d="M ${cx - 10},25 A 10 10 0 0 1 ${cx + 10},25 L ${cx + 10},29
                  L ${cx - 10},29 Z" fill="${stCab.metal}" stroke="${stCab.escuro}" stroke-width="1.2"/>
@@ -589,8 +657,7 @@ const Warrior = (() => {
               stroke="${stCab.escuro}" stroke-width="1.4"/>`;
     }
 
-    /* camada: arma — cada tipo tem silhueta própria */
-    const sx = cx + sh + armW + 9;
+    const sx = cx + sh + upperW + 9;
     let arma = "";
     const tipoArma = stArma.tipo || "espada";
 
@@ -626,7 +693,6 @@ const Warrior = (() => {
         </g>`;
 
     } else {
-      // espadas: normal, do campeão e espadão (mais larga/longa)
       const ehEspadao = tipoArma === "espadao";
       const bW = ehEspadao ? 5 : 3.2;
       const bH = ehEspadao ? 58 : 49;
@@ -674,87 +740,99 @@ const Warrior = (() => {
       return { ...g, pct, lvl: nivelDePontos(g.pontos) };
     });
     const maxPt = Math.max(...gs.map(g => g.pontos), 1);
+    const det = mapaDetalhado(s);
+    const detMap = Object.fromEntries(det.map(d=>[d.nome,d]));
 
-    // silhueta: calor pela intensidade relativa de cada região
     const heat = (...nomes) => {
       const pts = nomes.reduce((n, nome) => {
+        if (nome.includes(",")) {
+          // multi fallback
+          return Math.max(n, ...nome.split(",").map(x=> detMap[x.trim()]?.vol||0));
+        }
         const g = gs.find(x => x.nome === nome);
-        return Math.max(n, g ? g.pontos : 0);
+        if (g) return Math.max(n, g.pontos);
+        const d = detMap[nome];
+        return Math.max(n, d ? d.vol : 0);
       }, 0);
       const r = pts / maxPt;
       return `rgba(${Math.round(184 + 12 * r)},${Math.round(146 - 88 * r)},${Math.round(58 - 16 * r)},${(r > 0 ? .3 + .7 * r : .08).toFixed(2)})`;
     };
+    // calor fino por músculo individual (para silhueta detalhada)
+    const heatFine = (nome) => {
+      const d = detMap[nome];
+      if (!d) return heat(nome);
+      const maxVol = Math.max(...det.map(x=>x.vol),1);
+      const r = d.vol / maxVol;
+      return `rgba(${Math.round(184 + 12 * r)},${Math.round(146 - 88 * r)},${Math.round(58 - 16 * r)},${(r > 0 ? .35 + .6 * r : .08).toFixed(2)})`;
+    };
 
-    /* silhueta frontal (músculos visíveis de frente) */
     const silhuetaFrente = `
       <svg class="mapa-silhueta" viewBox="0 0 100 170" aria-hidden="true">
         <g stroke="#171009" stroke-width=".9">
           <circle cx="50" cy="13" r="8" fill="#c79b6f"/>
           <rect x="46" y="21" width="8" height="6" fill="#b98d63"/>
-          <path d="M33,28 Q50,23 67,28 L66,34 Q50,29 34,34 Z" fill="${heat("Costas")}"/>
-          <ellipse cx="32" cy="38" rx="7.5" ry="6.5" fill="${heat("Ombros")}"/>
-          <ellipse cx="68" cy="38" rx="7.5" ry="6.5" fill="${heat("Ombros")}"/>
-          <rect x="39" y="33" width="10.4" height="13" rx="4" fill="${heat("Peito")}"/>
-          <rect x="50.6" y="33" width="10.4" height="13" rx="4" fill="${heat("Peito")}"/>
-          <ellipse cx="26.5" cy="51" rx="5.2" ry="8.5" fill="${heat("Braços")}"/>
-          <ellipse cx="73.5" cy="51" rx="5.2" ry="8.5" fill="${heat("Braços")}"/>
-          <polygon points="22.5,60 30.5,60 28.5,79 24.5,79" fill="${heat("Braços")}"/>
-          <polygon points="69.5,60 77.5,60 75.5,79 71.5,79" fill="${heat("Braços")}"/>
+          <path d="M33,28 Q50,23 67,28 L66,34 Q50,29 34,34 Z" fill="${heatFine("Trapézio")}"/>
+          <ellipse cx="32" cy="38" rx="7.5" ry="6.5" fill="${heatFine("Deltoide Lateral")}"/>
+          <ellipse cx="68" cy="38" rx="7.5" ry="6.5" fill="${heatFine("Deltoide Lateral")}"/>
+          <ellipse cx="32" cy="42" rx="4.2" ry="3.5" fill="${heatFine("Deltoide Anterior")}" opacity="0.95"/>
+          <ellipse cx="68" cy="42" rx="4.2" ry="3.5" fill="${heatFine("Deltoide Anterior")}" opacity="0.95"/>
+          <rect x="39" y="33" width="10.4" height="13" rx="4" fill="${heatFine("Peitoral")}"/>
+          <rect x="50.6" y="33" width="10.4" height="13" rx="4" fill="${heatFine("Peitoral")}"/>
+          <!-- bíceps vs braquial vs tríceps: bíceps mais visível de frente -->
+          <ellipse cx="26.5" cy="49" rx="5.2" ry="5.5" fill="${heatFine("Bíceps")}"/>
+          <ellipse cx="73.5" cy="49" rx="5.2" ry="5.5" fill="${heatFine("Bíceps")}"/>
+          <ellipse cx="26.5" cy="52" rx="3.2" ry="4" fill="${heatFine("Braquial")}" opacity="0.85"/>
+          <ellipse cx="73.5" cy="52" rx="3.2" ry="4" fill="${heatFine("Braquial")}" opacity="0.85"/>
+          <polygon points="22.5,60 30.5,60 28.5,79 24.5,79" fill="${heatFine("Flexores do Antebraço")}"/>
+          <polygon points="69.5,60 77.5,60 75.5,79 71.5,79" fill="${heatFine("Flexores do Antebraço")}"/>
+          <polygon points="22,61 24,61 23,79 21,79" fill="${heatFine("Extensores do Antebraço")}" opacity="0.9"/>
+          <polygon points="76,61 78,61 77,79 79,79" fill="${heatFine("Extensores do Antebraço")}" opacity="0.9"/>
           <circle cx="26.5" cy="83" r="3" fill="#b98d63"/>
           <circle cx="73.5" cy="83" r="3" fill="#b98d63"/>
-          <rect x="42" y="63" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
-          <rect x="51" y="63" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
-          <rect x="42" y="70" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
-          <rect x="51" y="70" width="7" height="5.4" rx="1.5" fill="${heat("Core")}"/>
-          <rect x="43" y="77" width="6" height="5" rx="1.5" fill="${heat("Core")}"/>
-          <rect x="51" y="77" width="6" height="5" rx="1.5" fill="${heat("Core")}"/>
-          <polygon points="39,86 49.5,86 48,126 40,126" fill="${heat("Pernas")}"/>
-          <polygon points="50.5,86 61,86 60,126 52,126" fill="${heat("Pernas")}"/>
-          <ellipse cx="44.5" cy="137" rx="5.4" ry="10.5" fill="${heat("Pernas")}"/>
-          <ellipse cx="55.5" cy="137" rx="5.4" ry="10.5" fill="${heat("Pernas")}"/>
+          <rect x="42" y="63" width="7" height="5.4" rx="1.5" fill="${heatFine("Abdômen")}"/>
+          <rect x="51" y="63" width="7" height="5.4" rx="1.5" fill="${heatFine("Abdômen")}"/>
+          <rect x="42" y="70" width="7" height="5.4" rx="1.5" fill="${heatFine("Abdômen")}"/>
+          <rect x="51" y="70" width="7" height="5.4" rx="1.5" fill="${heatFine("Abdômen")}"/>
+          <rect x="43" y="77" width="6" height="5" rx="1.5" fill="${heatFine("Abdômen")}"/>
+          <rect x="51" y="77" width="6" height="5" rx="1.5" fill="${heatFine("Abdômen")}"/>
+          <polygon points="39,86 49.5,86 48,126 40,126" fill="${heatFine("Quadríceps")}"/>
+          <polygon points="50.5,86 61,86 60,126 52,126" fill="${heatFine("Quadríceps")}"/>
+          <ellipse cx="44.5" cy="137" rx="5.4" ry="10.5" fill="${heatFine("Panturrilha")}"/>
+          <ellipse cx="55.5" cy="137" rx="5.4" ry="10.5" fill="${heatFine("Panturrilha")}"/>
           <rect x="39" y="148" width="12" height="5.5" rx="1.5" fill="#33200f"/>
           <rect x="49" y="148" width="12" height="5.5" rx="1.5" fill="#33200f"/>
         </g>
       </svg>`;
 
-    /* silhueta posterior (costas, lombar, glúteos e posterior de coxa) */
     const silhuetaCostas = `
       <svg class="mapa-silhueta" viewBox="0 0 100 170" aria-hidden="true">
         <g stroke="#171009" stroke-width=".9">
           <circle cx="50" cy="13" r="8" fill="#b98d63"/>
           <rect x="46" y="21" width="8" height="6" fill="#a87e56"/>
-          <path d="M35,26 Q50,21 65,26 L61,38 Q50,33 39,38 Z" fill="${heat("Costas")}"/>
-          <path d="M46,30 L50,44 L54,30 L50,34 Z" fill="${heat("Ombros")}" opacity=".55"/>
-          <ellipse cx="32" cy="38" rx="7.5" ry="6.5" fill="${heat("Ombros")}"/>
-          <ellipse cx="68" cy="38" rx="7.5" ry="6.5" fill="${heat("Ombros")}"/>
-          <!-- dorsais (Costas), asas ao lado da coluna -->
-          <polygon points="37,36 47,35 45,70 40,64" fill="${heat("Costas")}"/>
-          <polygon points="63,36 53,35 55,70 60,64" fill="${heat("Costas")}"/>
+          <path d="M35,26 Q50,21 65,26 L61,38 Q50,33 39,38 Z" fill="${heatFine("Trapézio")}"/>
+          <ellipse cx="32" cy="38" rx="7.5" ry="6.5" fill="${heatFine("Deltoide Posterior")}"/>
+          <ellipse cx="68" cy="38" rx="7.5" ry="6.5" fill="${heatFine("Deltoide Posterior")}"/>
+          <polygon points="37,36 47,35 45,70 40,64" fill="${heatFine("Dorsais")}"/>
+          <polygon points="63,36 53,35 55,70 60,64" fill="${heatFine("Dorsais")}"/>
           <line x1="50" y1="34" x2="50" y2="78" stroke="#171009" stroke-width="1.4"/>
-          <!-- tríceps (Braços) -->
-          <ellipse cx="26.5" cy="52" rx="5.2" ry="9" fill="${heat("Braços")}"/>
-          <ellipse cx="73.5" cy="52" rx="5.2" ry="9" fill="${heat("Braços")}"/>
-          <polygon points="22.5,62 30.5,62 28.5,80 24.5,80" fill="${heat("Braços")}"/>
-          <polygon points="69.5,62 77.5,62 75.5,80 71.5,80" fill="${heat("Braços")}"/>
+          <ellipse cx="26.5" cy="52" rx="5.2" ry="9" fill="${heatFine("Tríceps")}"/>
+          <ellipse cx="73.5" cy="52" rx="5.2" ry="9" fill="${heatFine("Tríceps")}"/>
+          <polygon points="22.5,62 30.5,62 28.5,80 24.5,80" fill="${heatFine("Extensores do Antebraço")}"/>
+          <polygon points="69.5,62 77.5,62 75.5,80 71.5,80" fill="${heatFine("Extensores do Antebraço")}"/>
           <circle cx="26.5" cy="84" r="3" fill="#b98d63"/>
           <circle cx="73.5" cy="84" r="3" fill="#b98d63"/>
-          <!-- lombares (Core) -->
-          <rect x="42" y="72" width="16" height="10" rx="2" fill="${heat("Core")}"/>
-          <!-- glúteos (Pernas) -->
-          <rect x="39" y="83" width="10.5" height="15" rx="5" fill="${heat("Pernas")}"/>
-          <rect x="50.5" y="83" width="10.5" height="15" rx="5" fill="${heat("Pernas")}"/>
-          <!-- posterior de coxa (Pernas) -->
-          <polygon points="40,99 49.5,99 48,132 41,132" fill="${heat("Pernas")}"/>
-          <polygon points="50.5,99 60,99 59,132 52,132" fill="${heat("Pernas")}"/>
-          <!-- panturrilhas (Panturrilha/Pernas) -->
-          <ellipse cx="44.5" cy="143" rx="5.4" ry="10" fill="${heat("Panturrilha", "Pernas")}"/>
-          <ellipse cx="55.5" cy="143" rx="5.4" ry="10" fill="${heat("Panturrilha", "Pernas")}"/>
+          <rect x="42" y="72" width="16" height="10" rx="2" fill="${heatFine("Lombar")}"/>
+          <rect x="39" y="83" width="10.5" height="15" rx="5" fill="${heatFine("Glúteos")}"/>
+          <rect x="50.5" y="83" width="10.5" height="15" rx="5" fill="${heatFine("Glúteos")}"/>
+          <polygon points="40,99 49.5,99 48,132 41,132" fill="${heatFine("Posterior")}"/>
+          <polygon points="50.5,99 60,99 59,132 52,132" fill="${heatFine("Posterior")}"/>
+          <ellipse cx="44.5" cy="143" rx="5.4" ry="10" fill="${heatFine("Panturrilha")}"/>
+          <ellipse cx="55.5" cy="143" rx="5.4" ry="10" fill="${heatFine("Panturrilha")}"/>
           <rect x="39" y="153" width="12" height="5.5" rx="1.5" fill="#33200f"/>
           <rect x="49" y="153" width="12" height="5.5" rx="1.5" fill="#33200f"/>
         </g>
       </svg>`;
 
-    /* duas vistas lado a lado: frente e costas */
     const silhueta = `
       <div class="mapa-views">
         <div class="mapa-view">${silhuetaFrente}<span>Frente</span></div>
@@ -768,7 +846,8 @@ const Warrior = (() => {
       return out;
     };
 
-    const linhas = gs.map(g => {
+    // macro bars
+    const linhasMacro = gs.map(g => {
       const nv = NIVEIS_MUSCULARES[g.lvl];
       return `
       <div class="gm">
@@ -781,15 +860,41 @@ const Warrior = (() => {
       </div>`;
     }).join("");
 
+    // detalhado expandível
+    const linhasDetalhe = DETALHE_MAPA.map(grp => {
+      const grpPct = gs.find(x=>x.nome===grp.grupo)?.pct || 0;
+      const inner = grp.itens.map(nome => {
+        const m = detMap[nome];
+        const nv = NIVEIS_MUSCULARES[m.lvl];
+        return `
+          <div class="gm sub">
+            <div class="gm-top">
+              <span class="gm-nome sub">${nome}</span>
+              <span class="gm-pips small" title="${nv.nome}">${pips(m.lvl)}</span>
+              <span class="gm-pct small">${m.pct}%</span>
+            </div>
+            <div class="gm-bar small"><div class="lv${m.lvl}" style="width:${m.pct}%"></div></div>
+          </div>`;
+      }).join("");
+      return `
+        <div class="gm-grupo">
+          <div class="gm-grupo-title">${grp.grupo} <span class="gm-grupo-pct">${grpPct}%</span></div>
+          ${inner}
+        </div>`;
+    }).join("");
+
     return `
       <div class="mapa-wrap">
         ${silhueta}
-        <div class="mapa-bars">${linhas}</div>
+        <div class="mapa-bars">${linhasMacro}</div>
       </div>
-      <p class="mapa-legend">◆ I Iniciante · II Desenvolvido · III Avançado · IV Elite</p>`;
+      <p class="mapa-legend">◆ I Iniciante · II Desenvolvido · III Avançado · IV Elite</p>
+      <details class="mapa-detalhe" style="margin-top:.8rem;">
+        <summary style="cursor:pointer;font-family:var(--font-title);color:var(--gold);font-size:.82rem;letter-spacing:.06em;">▸ Ver músculos individuais</summary>
+        <div style="margin-top:.6rem;display:flex;flex-direction:column;gap:.6rem;">${linhasDetalhe}</div>
+      </details>`;
   }
 
-  /* ---- balanço: fatia de cada grupo no total (ordenado) ---- */
   function balancoHTML(s) {
     const rows = balanco(s)
       .slice()
@@ -803,8 +908,8 @@ const Warrior = (() => {
     return `<div class="mapa-bars">${rows}</div>`;
   }
 
-  return { svg, mapaHTML, balancoHTML, mapaPct, balanco,
+  return { svg, mapaHTML, balancoHTML, mapaPct, mapaDetalhado, balanco,
            rankGuerreiro, gruposMacroPontos, nivelDePontos, calcMusculos,
-           fatores, NIVEIS_MUSCULARES, COSMETICOS, SLOTS, PADRAO,
+           fatores, NIVEIS_MUSCULARES, DETALHE_MAPA, COSMETICOS, SLOTS, PADRAO,
            RARIDADES, porId, estiloDe, possui, statusItem, reqTexto };
 })();
