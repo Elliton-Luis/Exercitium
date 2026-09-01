@@ -503,8 +503,10 @@ const State = {
     if (!Warrior || !Warrior.SLOTS || !Warrior.SLOTS[slot]) return false;
     const exists = Warrior.porId(id);
     if (!exists || exists.slot !== slot) {
-      // permite padrão mesmo se não listado
       if (id !== Warrior.SLOTS[slot].padrao) return false;
+    } else {
+      // bloqueia equipar item da loja/recompensa não possuído
+      if (typeof Warrior.possui === "function" && !Warrior.possui(this.s, id)) return false;
     }
     this.s.personagem.equipamento[slot] = id;
     this.save();

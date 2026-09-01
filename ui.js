@@ -27,6 +27,7 @@ const UI = {
   _exSubFiltro: "Todos",
   _busca: "",
   _buscaTimer: null,
+  _comprando: false,
 
   init() {
     State.init();
@@ -204,7 +205,15 @@ const UI = {
     "equip-item":       function (id) {
       const item = Warrior.porId(id);
       if (!item) return;
-      State.equiparCosmetico(item.slot, id);
+      if (!Warrior.possui(State.s, id)) {
+        const st = Warrior.statusItem(State.s, item);
+        this.toast(`🔒 ${st.motivo}`);
+        return;
+      }
+      if (!State.equiparCosmetico(item.slot, id)) {
+        this.toast(`🔒 Não foi possível equipar.`);
+        return;
+      }
       this.toast(`⚔ ${escapar(item.nome)} equipado!`);
       this.render_forja(document.getElementById("screen-forja"));
     },
@@ -1486,16 +1495,21 @@ const UI = {
   comprarItem(id) {
     const item = Warrior.porId(id);
     if (!item) return;
+    if (this._comprando) return;
+    this._comprando = true; setTimeout(()=> this._comprando=false, 800);
     const st = Warrior.statusItem(State.s, item);
-    if (st.acao !== "comprar") return;
+    if (st.acao !== "comprar") {
+      if (st.acao === "caro" || st.acao === "bloqueado") this.toast(`🔒 ${st.motivo}`);
+      return;
+    }
     if (State.comprarCosmetico(id, item.origem.preco)) {
-      this.toast(`🛒 ${escapar(item.nome)} adquirido!`);
-      // após comprar, já entra em prévia para equipar de imediato
+      this.toast(`🛒 ${escapar(item.nome)} comprado por ${fmtNum(item.origem.preco)} 🪙!`);
+      this.floatXP(`-${fmtNum(item.origem.preco)} 🪙`, true);
       this._forjaPrevia = { slot: item.slot, id };
       this.updateHUD();
       this.render_forja(document.getElementById("screen-forja"));
     } else {
-      this.toast("🪙 Ouro insuficiente.");
+      this.toast(`🪙 Ouro insuficiente! Precisa de ${fmtNum(item.origem.preco)} 🪙`);
     }
   },
 
@@ -1503,8 +1517,32 @@ const UI = {
   confirmarPrevia() {
     const pv = this._forjaPrevia;
     if (!pv) return;
-    State.equiparCosmetico(pv.slot, pv.id);
-    const nome = Warrior.porId(pv.id)?.nome || "";
+    const item = Warrior.porId(pv.id);
+    if (!item) return;
+    const st = Warrior.statusItem(State.s, item);
+    // se precisa comprar, tenta comprar antes de equipar
+    if (st.acao === "comprar") {
+      if (!State.comprarCosmetico(item.id, item.origem.preco)) {
+        this.toast(`🪙 Ouro insuficiente! Faltam ${fmtNum(item.origem.preco - State.s.personagem.ouro)} 🪙`);
+        this.render_forja(document.getElementById("screen-forja"));
+        return;
+      }
+      this.toast(`🛒 ${escapar(item.nome)} comprado por ${fmtNum(item.origem.preco)} 🪙!`);
+      this.floatXP(`-${fmtNum(item.origem.preco)} 🪙`, true);
+      this.updateHUD();
+    } else if (st.acao === "bloqueado" || st.acao === "caro") {
+      this.toast(`🔒 ${st.motivo}`);
+      this.render_forja(document.getElementById("screen-forja"));
+      return;
+    } else if (!Warrior.possui(State.s, item.id)) {
+      this.toast(`🔒 Você ainda não possui ${escapar(item.nome)}.`);
+      return;
+    }
+    if (!State.equiparCosmetico(pv.slot, pv.id)) {
+      this.toast(`🔒 Não foi possível equipar.`);
+      return;
+    }
+    const nome = item.nome || "";
     this._forjaPrevia = null;
     this.toast(`⚔ ${escapar(nome)} equipado!`);
     this.render_forja(document.getElementById("screen-forja"));
@@ -1604,15 +1642,38 @@ const UI = {
           <div class="ficha-warrior big forja-preview">${Warrior.svg(State.s, {
             equipamento: equipEfetivo ? { [previa.slot]: previa.id } : null
           })}</div>
-          ${previa ? `
+          ${(() => {
+            if (!previa) return `<div class="cmp-box dica">Toque em um item<br>para ver no guerreiro</div>`;
+            const itemPrev = Warrior.porId(previa.id);
+            const stPrev = Warrior.statusItem(s, itemPrev);
+            const preco = itemPrev?.origem?.preco;
+            let custoInfo = "";
+            let btnLabel = "EQUIPAR";
+            let btnDisabled = "";
+            if (stPrev.acao === "comprar") {
+              btnLabel = `COMPRAR ${fmtNum(preco)} 🪙 E EQUIPAR`;
+              custoInfo = `<div class="cmp-custo">Custo: <b>${fmtNum(preco)} 🪙</b> · Seu ouro: ${fmtNum(s.personagem.ouro)} → <b style="color:${s.personagem.ouro>=preco?"var(--xp)":"#ff9a80"}">${fmtNum(s.personagem.ouro - preco)}</b></div>`;
+            } else if (stPrev.acao === "caro" || stPrev.acao === "bloqueado") {
+              custoInfo = `<div class="cmp-custo" style="color:#ff9a80">${stPrev.motivo}</div>`;
+              btnLabel = "🔒 BLOQUEADO";
+              btnDisabled = "disabled";
+            } else if (stPrev.acao === "equipar") {
+              custoInfo = `<div class="cmp-custo" style="color:var(--xp)">✔ Já possui — pronto para equipar</div>`;
+            } else if (stPrev.acao === "equipado") {
+              custoInfo = `<div class="cmp-custo">✔ Já equipado</div>`;
+              btnLabel = "EQUIPADO";
+              btnDisabled = "disabled";
+            }
+            return `
             <div class="cmp-box">
-              <div class="cmp-titulo">${escapar(Warrior.porId(previa.id)?.nome || "")}</div>
+              <div class="cmp-titulo">${escapar(itemPrev?.nome || "")}</div>
               <div class="cmp-linha"><span class="k">ATUAL</span><span>${escapar(nomeAtual)}</span></div>
-              <div class="cmp-linha novo"><span class="k">NOVO</span><span>${escapar(Warrior.porId(previa.id)?.nome || "")}</span></div>
-              <button class="btn btn-primary" data-action="confirm-preview" style="margin-top:.5rem;">EQUIPAR</button>
+              <div class="cmp-linha novo"><span class="k">NOVO</span><span>${escapar(itemPrev?.nome || "")}</span></div>
+              ${custoInfo}
+              <button class="btn btn-primary" data-action="confirm-preview" ${btnDisabled} style="margin-top:.5rem;">${btnLabel}</button>
               <button class="btn btn-ghost" data-action="cancel-preview" style="width:auto;margin:.4rem auto 0;padding:.35rem .9rem;font-size:.7rem;">CANCELAR</button>
-            </div>`
-          : `<div class="cmp-box dica">Toque em um item<br>para ver no guerreiro</div>`}
+            </div>`;
+          })()}
         </div>
       </div>
     `;
