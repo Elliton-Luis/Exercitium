@@ -770,106 +770,115 @@ const Warrior = (() => {
     };
 
     const silhuetaFrente = `
-      <svg class="mapa-silhueta" viewBox="0 0 100 170" aria-hidden="true">
-        <g stroke="#171009" stroke-width=".85">
-          <circle cx="50" cy="13" r="7.2" fill="#c79b6f"/>
-          <rect x="46.5" y="20.5" width="7" height="5.5" fill="#b98d63"/>
-          <!-- trapézio estreito em V, sem bola -->
-          <path d="M42,27 L46.2,28.2 L50,25.2 L53.8,28.2 L58,27 L61,31.2 L59.2,34.5 L50,30 L40.8,34.5 L39,31.2 Z" fill="${heatFine("Trapézio")}"/>
-          <!-- peitoral atlético com cintura marcada -->
-          <path d="M39.5,34 L48.7,34 L48.7,45.8 Q43.8,49.2 39.5,45.9 Z" fill="${heatFine("Peitoral")}"/>
-          <path d="M51.3,34 L60.5,34 L60.5,45.9 Q56.2,49.2 51.3,45.8 Z" fill="${heatFine("Peitoral")}"/>
-          <path d="M49.6,34 L50.4,34 L50.4,46.2 L49.6,46.2 Z" fill="#171009" opacity="0.22"/>
-          <!-- deltoides enxutos -->
-          <ellipse cx="32" cy="38.2" rx="6.6" ry="6" fill="${heatFine("Deltoide Lateral")}"/>
-          <ellipse cx="68" cy="38.2" rx="6.6" ry="6" fill="${heatFine("Deltoide Lateral")}"/>
-          <ellipse cx="32.1" cy="42.8" rx="3.8" ry="3.4" fill="${heatFine("Deltoide Anterior")}" stroke="#171009" stroke-width="0.55"/>
-          <ellipse cx="67.9" cy="42.8" rx="3.8" ry="3.4" fill="${heatFine("Deltoide Anterior")}" stroke="#171009" stroke-width="0.55"/>
-          <!-- braços esguios: bíceps + braquial -->
-          <ellipse cx="26.2" cy="49.5" rx="4.3" ry="5.2" fill="${heatFine("Bíceps")}"/>
-          <ellipse cx="73.8" cy="49.5" rx="4.3" ry="5.2" fill="${heatFine("Bíceps")}"/>
-          <ellipse cx="26.6" cy="53.8" rx="2.1" ry="3.2" fill="${heatFine("Braquial")}" />
-          <ellipse cx="73.4" cy="53.8" rx="2.1" ry="3.2" fill="${heatFine("Braquial")}" />
-          <!-- antebraço dividido sem volume extra -->
-          <g>
-            <path d="M22.6,60.2 L27.2,60.2 L26.6,79.8 L23,79.8 Z" fill="${heatFine("Flexores do Antebraço")}"/>
-            <path d="M27.2,60.2 L29.4,60.2 L28.8,79.8 L26.6,79.8 Z" fill="${heatFine("Extensores do Antebraço")}"/>
-          </g>
-          <g>
-            <path d="M70.6,60.2 L72.8,60.2 L73.4,79.8 L72.8,79.8 L70.6,60.2 Z" fill="${heatFine("Extensores do Antebraço")}"/>
-            <path d="M72.8,60.2 L77.4,60.2 L76.8,79.8 L73.4,79.8 Z" fill="${heatFine("Flexores do Antebraço")}"/>
-          </g>
-          <circle cx="26.4" cy="83.2" r="2.3" fill="#c79b6f"/>
-          <circle cx="73.6" cy="83.2" r="2.3" fill="#c79b6f"/>
-          <!-- abdômen em V, cintura fina -->
-          <g>
-            <rect x="42" y="60.2" width="6.6" height="5.6" rx="1.3" fill="${heatFine("Abdômen")}"/>
-            <rect x="51.4" y="60.2" width="6.6" height="5.6" rx="1.3" fill="${heatFine("Abdômen")}"/>
-            <rect x="42" y="66.6" width="6.6" height="5.6" rx="1.3" fill="${heatFine("Abdômen")}"/>
-            <rect x="51.4" y="66.6" width="6.6" height="5.6" rx="1.3" fill="${heatFine("Abdômen")}"/>
-            <rect x="42.8" y="73" width="6" height="5.4" rx="1.2" fill="${heatFine("Abdômen")}"/>
-            <rect x="51.2" y="73" width="6" height="5.4" rx="1.2" fill="${heatFine("Abdômen")}"/>
-            <line x1="50" y1="60.2" x2="50" y2="79" stroke="#171009" stroke-width="0.6" opacity="0.9"/>
-          </g>
-          <!-- pernas atléticas: quadríceps estreito com cintura alta -->
-          <path d="M40,86.2 L48.6,86.2 L47.7,126.5 L40.8,126.5 Z" fill="${heatFine("Quadríceps")}"/>
-          <path d="M51.4,86.2 L60,86.2 L59.2,126.5 L52.3,126.5 Z" fill="${heatFine("Quadríceps")}"/>
-          <path d="M44.2,86.2 L44.8,86.2 L44.1,126.5 L43.5,126.5 Z" fill="#171009" opacity="0.16"/>
-          <path d="M55.2,86.2 L55.8,86.2 L55.1,126.5 L54.5,126.5 Z" fill="#171009" opacity="0.16"/>
-          <!-- panturrilha esguia -->
-          <ellipse cx="44.5" cy="136.5" rx="4.4" ry="9.2" fill="${heatFine("Panturrilha")}"/>
-          <ellipse cx="55.5" cy="136.5" rx="4.4" ry="9.2" fill="${heatFine("Panturrilha")}"/>
-          <rect x="40" y="148" width="8.5" height="4.8" rx="1.3" fill="#33200f"/>
-          <rect x="51.5" y="148" width="8.5" height="4.8" rx="1.3" fill="#33200f"/>
-        </g>
-      </svg>`;
+  <svg class="mapa-silhueta" viewBox="0 0 100 170" aria-hidden="true" style="overflow: visible;">
+    <defs>
+      <filter id="muscleGlow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="0.8" result="blur" />
+        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+      </filter>
+    </defs>
 
-    const silhuetaCostas = `
-      <svg class="mapa-silhueta" viewBox="0 0 100 170" aria-hidden="true">
-        <g stroke="#171009" stroke-width=".85">
-          <circle cx="50" cy="13" r="7.2" fill="#b98d63"/>
-          <rect x="46.5" y="20.5" width="7" height="5.5" fill="#a87e56"/>
-          <!-- trapézio em V estreito -->
-          <path d="M42,27 L46.2,28.2 L50,25.2 L53.8,28.2 L58,27 L61.8,31.5 L50,36.5 L38.2,31.5 Z" fill="${heatFine("Trapézio")}"/>
-          <!-- deltoide posterior enxuto -->
-          <ellipse cx="32" cy="38.8" rx="6.8" ry="6.3" fill="${heatFine("Deltoide Posterior")}"/>
-          <ellipse cx="68" cy="38.8" rx="6.8" ry="6.3" fill="${heatFine("Deltoide Posterior")}"/>
-          <!-- dorsais em V atlético -->
-          <path d="M38,36.2 L46.4,36.2 L44.8,68.5 L41.2,64.2 L38,54 Z" fill="${heatFine("Dorsais")}"/>
-          <path d="M62,36.2 L53.6,36.2 L55.2,68.5 L58.8,64.2 L62,54 Z" fill="${heatFine("Dorsais")}"/>
-          <line x1="50" y1="33" x2="50" y2="77" stroke="#171009" stroke-width="1.3"/>
-          <!-- tríceps posterior -->
-          <ellipse cx="26.4" cy="52.2" rx="4.5" ry="7.6" fill="${heatFine("Tríceps")}"/>
-          <ellipse cx="73.6" cy="52.2" rx="4.5" ry="7.6" fill="${heatFine("Tríceps")}"/>
-          <!-- antebraço atrás -->
-          <g>
-            <path d="M22.6,61.2 L27.6,61.2 L27,80 L22.8,80 Z" fill="${heatFine("Extensores do Antebraço")}"/>
-            <path d="M27.6,61.2 L29.4,61.2 L28.8,80 L27,80 Z" fill="${heatFine("Flexores do Antebraço")}" opacity="0.9"/>
-          </g>
-          <g>
-            <path d="M72.4,61.2 L77.4,61.2 L77,80 L72.4,80 Z" fill="${heatFine("Extensores do Antebraço")}"/>
-            <path d="M70.6,61.2 L72.4,61.2 L72.4,80 L71,80 Z" fill="${heatFine("Flexores do Antebraço")}" opacity="0.9"/>
-          </g>
-          <circle cx="26.4" cy="83.8" r="2.3" fill="#c79b6f"/>
-          <circle cx="73.6" cy="83.8" r="2.3" fill="#c79b6f"/>
-          <!-- lombar estreita -->
-          <rect x="43.2" y="70.8" width="13.6" height="9.2" rx="1.8" fill="${heatFine("Lombar")}"/>
-          <line x1="50" y1="70.8" x2="50" y2="80.2" stroke="#171009" stroke-width="0.55" opacity="0.7"/>
-          <!-- glúteos atléticos sem bola -->
-          <path d="M40.2,83.2 Q40.2,82 41.6,82 L48.4,82 Q49.2,82 49.2,83.6 L49.2,92.5 Q49.2,95.2 44.8,95.2 Q40.2,95.2 40.2,92.5 Z" fill="${heatFine("Glúteos")}"/>
-          <path d="M50.8,82 Q50.8,82 51.6,82 L58.4,82 Q59.8,82 59.8,83.2 L59.8,92.5 Q59.8,95.2 55.2,95.2 Q50.8,95.2 50.8,92.5 Z" fill="${heatFine("Glúteos")}"/>
-          <line x1="50" y1="82" x2="50" y2="95.2" stroke="#171009" stroke-width="0.6" opacity="0.9"/>
-          <!-- posteriores esguios -->
-          <path d="M40.8,98.5 L48.8,98.5 L48,131.8 L41.2,131.8 Z" fill="${heatFine("Posterior")}"/>
-          <path d="M51.2,98.5 L59.2,98.5 L58.8,131.8 L52,131.8 Z" fill="${heatFine("Posterior")}"/>
-          <line x1="50" y1="98.5" x2="50" y2="131.8" stroke="#171009" stroke-width="0.55" opacity="0.8"/>
-          <!-- panturrilha esguia -->
-          <ellipse cx="44.5" cy="136.2" rx="4.4" ry="9.0" fill="${heatFine("Panturrilha")}"/>
-          <ellipse cx="55.5" cy="136.2" rx="4.4" ry="9.0" fill="${heatFine("Panturrilha")}"/>
-          <rect x="40" y="147.5" width="8.5" height="4.8" rx="1.3" fill="#33200f"/>
-          <rect x="51.5" y="147.5" width="8.5" height="4.8" rx="1.3" fill="#33200f"/>
-        </g>
-      </svg>`;
+    <!-- Contorno base / sombra do corpo para dar profundidade de fundo -->
+    <g stroke="#1a1108" stroke-width="0.75" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M 45,8 C 45,3 55,3 55,8 C 56,13 54,18 50,18 C 46,18 44,13 45,8 Z" fill="#2a1a0f"/>
+      <path d="M 46,18 L 44,23 L 34,28 L 26,42 L 21,62 L 18,80 L 22,81 L 25,65 L 29,48 L 36,44 L 38,62 L 36,84 L 33,115 L 36,145 L 37,162 L 43,162 L 44,142 L 47,112 L 49,94 L 50,94 L 51,94 L 53,112 L 56,142 L 57,162 L 63,162 L 64,145 L 67,115 L 64,84 L 62,62 L 64,44 L 71,48 L 75,65 L 78,81 L 82,80 L 79,62 L 74,28 L 64,23 L 62,18 Z" fill="#1f140c" />
+    </g>
+
+    <!-- Grupos musculares da Frente -->
+    <g stroke="#140b05" stroke-width="0.4" stroke-linejoin="round">
+      <!-- Trapézio Superior -->
+      <path d="M 46,20 Q 42,23 37,27 Q 44,29 48,27 Q 50,25 50,22 Z" fill="${heatFine("Trapézio")}"/>
+      <path d="M 54,20 Q 58,23 63,27 Q 56,29 52,27 Q 50,25 50,22 Z" fill="${heatFine("Trapézio")}"/>
+
+      <!-- Deltoides Anteriores / Laterais -->
+      <path d="M 37,27 Q 31,29 28,36 Q 27,42 31,44 Q 35,42 36,36 Q 36,30 37,27 Z" fill="${heatFine("Ombros")}"/>
+      <path d="M 63,27 Q 69,29 72,36 Q 73,42 69,44 Q 65,42 64,36 Q 64,30 63,27 Z" fill="${heatFine("Ombros")}"/>
+
+      <!-- Peitoral Maior -->
+      <path d="M 49,27 L 39,28 Q 36,35 38,42 Q 45,46 49,43 Z" fill="${heatFine("Peito")}"/>
+      <path d="M 51,27 L 61,28 Q 64,35 62,42 Q 55,46 51,43 Z" fill="${heatFine("Peito")}"/>
+
+      <!-- Bíceps e Braquial -->
+      <path d="M 30,44 Q 26,48 26,56 Q 29,59 32,55 Q 34,49 32,44 Z" fill="${heatFine("Braços")}"/>
+      <path d="M 70,44 Q 74,48 74,56 Q 71,59 68,55 Q 66,49 68,44 Z" fill="${heatFine("Braços")}"/>
+
+      <!-- Antebraços -->
+      <path d="M 26,57 Q 21,64 21,74 Q 24,77 26,73 Q 28,65 29,57 Z" fill="${heatFine("Antebraço")}"/>
+      <path d="M 74,57 Q 79,64 79,74 Q 76,77 74,73 Q 72,65 71,57 Z" fill="${heatFine("Antebraço")}"/>
+
+      <!-- Abdômen e Oblíquos (Core) -->
+      <g fill="${heatFine("Core")}">
+        <!-- Gomos Superiores -->
+        <path d="M 44,45 Q 48,45 49,45 L 49,51 Q 45,51 44,50 Z"/>
+        <path d="M 56,45 Q 52,45 51,45 L 51,51 Q 55,51 56,50 Z"/>
+        <!-- Gomos Médios -->
+        <path d="M 43.5,52 L 49,52 L 49,58 L 44,57 Z"/>
+        <path d="M 56.5,52 L 51,52 L 51,58 L 56,57 Z"/>
+        <!-- Gomos Inferiores / Linha Alba -->
+        <path d="M 44.5,59 L 49,59 L 49,66 L 46,65 Z"/>
+        <path d="M 55.5,59 L 51,59 L 51,66 L 54,65 Z"/>
+        <!-- Oblíquos -->
+        <path d="M 37,47 Q 41,53 42,63 Q 38,62 36,55 Z"/>
+        <path d="M 63,47 Q 59,53 58,63 Q 62,62 64,55 Z"/>
+      </g>
+
+      <!-- Quadríceps (Pernas) -->
+      <g fill="${heatFine("Pernas")}">
+        <path d="M 39,70 Q 34,85 36,108 Q 42,110 43,98 Q 45,84 44,70 Z"/>
+        <path d="M 61,70 Q 66,85 64,108 Q 58,110 57,98 Q 55,84 56,70 Z"/>
+        <path d="M 44.5,73 Q 47,88 46.5,103 Q 44,104 43.5,95 Z"/>
+        <path d="M 55.5,73 Q 53,88 53.5,103 Q 56,104 56.5,95 Z"/>
+      </g>
+
+      <!-- Panturrilhas Frente -->
+      <path d="M 37,118 Q 34,130 37,144 Q 41,144 42,132 Q 42,122 39,118 Z" fill="${heatFine("Pernas")}"/>
+      <path d="M 63,118 Q 66,130 63,144 Q 59,144 58,132 Q 58,122 61,118 Z" fill="${heatFine("Pernas")}"/>
+    </g>
+  </svg>`;
+
+const silhuetaCostas = `
+  <svg class="mapa-silhueta" viewBox="0 0 100 170" aria-hidden="true" style="overflow: visible;">
+    <!-- Contorno base / sombra do corpo -->
+    <g stroke="#1a1108" stroke-width="0.75" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M 45,8 C 45,3 55,3 55,8 C 56,13 54,18 50,18 C 46,18 44,13 45,8 Z" fill="#24160c"/>
+      <path d="M 46,18 L 44,23 L 34,28 L 26,42 L 21,62 L 18,80 L 22,81 L 25,65 L 29,48 L 36,44 L 38,62 L 36,84 L 33,115 L 36,145 L 37,162 L 43,162 L 44,142 L 47,112 L 49,94 L 50,94 L 51,94 L 53,112 L 56,142 L 57,162 L 63,162 L 64,145 L 67,115 L 64,84 L 62,62 L 64,44 L 71,48 L 75,65 L 78,81 L 82,80 L 79,62 L 74,28 L 64,23 L 62,18 Z" fill="#1f140c" />
+    </g>
+
+    <!-- Grupos musculares das Costas -->
+    <g stroke="#140b05" stroke-width="0.4" stroke-linejoin="round">
+      <!-- Trapézio Completo (Romboide / Cervical) -->
+      <path d="M 46,20 L 50,22 L 54,20 Q 59,25 61,28 L 50,42 L 39,28 Q 41,25 46,20 Z" fill="${heatFine("Costas")}"/>
+
+      <!-- Deltoide Posterior -->
+      <path d="M 37,27 Q 31,30 28,37 Q 30,43 35,41 Q 38,36 38,29 Z" fill="${heatFine("Ombros")}"/>
+      <path d="M 63,27 Q 69,30 72,37 Q 70,43 65,41 Q 62,36 62,29 Z" fill="${heatFine("Ombros")}"/>
+
+      <!-- Tríceps -->
+      <path d="M 28,42 Q 25,50 25,58 Q 29,59 31,52 Q 32,46 30,42 Z" fill="${heatFine("Braços")}"/>
+      <path d="M 72,42 Q 75,50 75,58 Q 71,59 69,52 Q 68,46 70,42 Z" fill="${heatFine("Braços")}"/>
+
+      <!-- Antebraço Dorsal -->
+      <path d="M 25,59 Q 20,66 21,75 Q 24,78 26,73 Q 27,65 28,59 Z" fill="${heatFine("Antebraço")}"/>
+      <path d="M 75,59 Q 80,66 79,75 Q 76,78 74,73 Q 73,65 72,59 Z" fill="${heatFine("Antebraço")}"/>
+
+      <!-- Grande Dorsal / Lombar -->
+      <path d="M 39,34 Q 48,42 49,56 L 46,67 Q 39,58 36,44 Q 36,37 39,34 Z" fill="${heatFine("Costas")}"/>
+      <path d="M 61,34 Q 52,42 51,56 L 54,67 Q 61,58 64,44 Q 64,37 61,34 Z" fill="${heatFine("Costas")}"/>
+      <path d="M 46.5,58 L 50,56 L 53.5,58 L 53,68 L 47,68 Z" fill="${heatFine("Costas")}"/>
+
+      <!-- Glúteos -->
+      <path d="M 39,68 Q 49,67 49.5,76 Q 49.5,84 41,84 Q 37,80 38,69 Z" fill="${heatFine("Pernas")}"/>
+      <path d="M 61,68 Q 51,67 50.5,76 Q 50.5,84 59,84 Q 63,80 62,69 Z" fill="${heatFine("Pernas")}"/>
+
+      <!-- Posteriores de Coxa (Isquiotibiais) -->
+      <path d="M 39,85 Q 49,85 46,108 Q 40,109 37,97 Q 36,89 39,85 Z" fill="${heatFine("Pernas")}"/>
+      <path d="M 61,85 Q 51,85 54,108 Q 60,109 63,97 Q 64,89 61,85 Z" fill="${heatFine("Pernas")}"/>
+
+      <!-- Panturrilhas Costas (Gastrocnêmio duplo) -->
+      <path d="M 37,116 Q 33,126 36,138 Q 42,138 41,128 Q 41,120 38,116 Z" fill="${heatFine("Pernas")}"/>
+      <path d="M 63,116 Q 67,126 64,138 Q 58,138 59,128 Q 59,120 62,116 Z" fill="${heatFine("Pernas")}"/>
+    </g>
+  </svg>`;
 
     const silhueta = `
       <div class="mapa-views">
