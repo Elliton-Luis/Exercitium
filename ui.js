@@ -130,6 +130,7 @@ const UI = {
     if (!ev) return;
     if (ev.tipo === "levelup") {
       this.confete();
+      const restantes = this.filaCelebracoes.length;
       this.modal(`
         <div class="m-icon">⚔</div>
         <h2>NÍVEL AUMENTOU!</h2>
@@ -137,8 +138,11 @@ const UI = {
         <p class="m-sub">Recompensa: 🪙 +${ev.ouro} de ouro</p>
         <div class="ornament">✦ ✦ ✦</div>
         <button class="btn btn-primary" data-action="next-celebration">CONTINUAR</button>
+        ${restantes > 0 ? `<button class="btn btn-ghost" data-action="accept-all-celebrations" style="margin-top:.5rem;font-size:.72rem;">✓ ACEITAR TODAS (${restantes + 1} pendentes)</button>` : ""}
       `);
     } else if (ev.tipo === "record") {
+      const restantesRecords = this.filaCelebracoes.filter(e => e.tipo === "record").length;
+      const totalPendentes = this.filaCelebracoes.length;
       this.modal(`
         <div class="m-icon">🏆</div>
         <h2>NOVO RECORDE!</h2>
@@ -149,9 +153,12 @@ const UI = {
         <div class="m-gain">+${ev.xp} XP</div>
         <div class="ornament">✦ ✦ ✦</div>
         <button class="btn btn-primary" data-action="next-celebration">CONTINUAR</button>
+        ${restantesRecords > 0 ? `<button class="btn btn-ghost" data-action="accept-all-records" style="margin-top:.5rem;font-size:.72rem;">✓ ACEITAR TODAS (${restantesRecords + 1} recordes)</button>` : ""}
+        ${restantesRecords === 0 && totalPendentes > 0 ? `<button class="btn btn-ghost" data-action="accept-all-celebrations" style="margin-top:.5rem;font-size:.72rem;">✓ ACEITAR TODAS (${totalPendentes + 1} pendentes)</button>` : ""}
       `);
     } else if (ev.tipo === "conquista") {
       this.confete();
+      const restantes = this.filaCelebracoes.length;
       this.modal(`
         <div class="m-icon">${ev.icone}</div>
         <h2>CONQUISTA DESBLOQUEADA</h2>
@@ -160,6 +167,7 @@ const UI = {
         <div class="m-gain">+${ev.xp} XP · 🪙 +${ev.ouro}</div>
         <div class="ornament">✦ ✦ ✦</div>
         <button class="btn btn-primary" data-action="next-celebration">CONTINUAR</button>
+        ${restantes > 0 ? `<button class="btn btn-ghost" data-action="accept-all-celebrations" style="margin-top:.5rem;font-size:.72rem;">✓ ACEITAR TODAS (${restantes + 1} pendentes)</button>` : ""}
       `);
     }
   },
@@ -386,6 +394,16 @@ const UI = {
     "next-celebration": function () {
       this.fecharModal();
       this.proximaCelebracao();
+    },
+    "accept-all-records": function () {
+      // remove todos os recordes restantes da fila e avança
+      this.filaCelebracoes = this.filaCelebracoes.filter(e => e.tipo !== "record");
+      this.fecharModal();
+      this.proximaCelebracao();
+    },
+    "accept-all-celebrations": function () {
+      this.filaCelebracoes = [];
+      this.fecharModal();
     },
     "finish-continue": function () {
       this.fecharModal();
