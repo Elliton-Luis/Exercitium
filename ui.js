@@ -1052,9 +1052,10 @@ const UI = {
       </div>`;
     }
     const conf = Analise.textoConfianca(a);
+    const confDica = "Confiança reflete quantidade e consistência das séries válidas.";
     return `
       <div class="panel sugestao">
-        <div class="panel-title">🔮 Sugestão do Oráculo <span class="sug-conf">${escapar(conf)}</span></div>
+        <div class="panel-title">🔮 Sugestão do Oráculo <span class="sug-conf" title="${confDica}">${escapar(conf)}</span></div>
         <div class="sug-destaque">${a.cargaSugerida} kg <span>× ${a.repsAlvo.min}–${a.repsAlvo.max} reps</span></div>
         <p class="sug-msg">${escapar(a.mensagem)}</p>
         <div class="cs-row"><span>Faixa provável</span><span class="cs-val">${a.faixaCarga.min}–${a.faixaCarga.max} kg · ${a.faixaReps.min}–${a.faixaReps.max} reps</span></div>
