@@ -1337,3 +1337,24 @@ button {
   .inputs-grid { grid-template-columns: 1fr; gap: .55rem; }
   .times-sep { display: none; }
 }
+
+/* ================= ANÁLISE HISTÓRICA (estimativa, não regra) ================= */
+.panel.sugestao { border-left: 3px solid var(--gold); }
+.sug-destaque {
+  font-family: var(--font-pixel); font-size: 1.6rem; color: var(--gold-bright);
+  text-align: center; margin: .3rem 0;
+}
+.sug-destaque span { font-size: 1.1rem; color: var(--text); }
+.sug-msg { text-align: center; margin: .3rem 0 .5rem; }
+.sug-detalhe { margin-top: .4rem; }
+.sug-conf {
+  font-family: var(--font-pixel); font-size: .85rem; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 2px; padding: .1rem .45rem;
+  margin-left: .4rem; white-space: nowrap;
+}
+.analise-scatter { width: 100%; height: auto; margin-top: .5rem; }
+.set-row.set-ignored { opacity: .6; border-style: dashed; }
+.set-row.set-ignored .set-data { color: var(--text-dim); }
+.hist-entry.hist-toggle .he-sets { display: flex; flex-wrap: wrap; gap: .3rem; }
+.hist-entry.hist-toggle .chip { font-size: .8rem; padding: .2rem .5rem; }
+.hist-entry.hist-toggle .chip.on { border-color: var(--gold); color: var(--gold-bright); }

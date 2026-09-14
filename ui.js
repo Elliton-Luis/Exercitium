@@ -1036,6 +1036,33 @@ const UI = {
     ).join("");
   },
 
+  /* bloco "Sugestão" — estimativa a partir do histórico válido */
+  _htmlSugestao(exId) {
+    let a = null;
+    try {
+      a = Analise.analisar(exId);
+    } catch (e) { return ""; }
+    if (!a) return "";
+    if (a.estado === "sem-dados") {
+      return `
+      <div class="panel sugestao">
+        <div class="panel-title">🔮 Sugestão do Oráculo</div>
+        <p class="m-sub" style="text-align:left">Ainda tenho poucos dados para estimar.</p>
+        <p class="m-sub" style="text-align:left;color:var(--text-dim);font-size:.8rem;">Registre séries válidas e a estimativa aparece aqui.</p>
+      </div>`;
+    }
+    const conf = Analise.textoConfianca(a);
+    return `
+      <div class="panel sugestao">
+        <div class="panel-title">🔮 Sugestão do Oráculo <span class="sug-conf">${escapar(conf)}</span></div>
+        <div class="sug-destaque">${a.cargaSugerida} kg <span>× ${a.repsAlvo.min}–${a.repsAlvo.max} reps</span></div>
+        <p class="sug-msg">${escapar(a.mensagem)}</p>
+        <div class="cs-row"><span>Faixa provável</span><span class="cs-val">${a.faixaCarga.min}–${a.faixaCarga.max} kg · ${a.faixaReps.min}–${a.faixaReps.max} reps</span></div>
+        <p class="m-sub sug-detalhe">${escapar(a.detalhe)} 1RM estimado (Epley) mediano ≈ ${a.e1rmMediano} kg — referência aproximada, não regra.</p>
+        ${Analise.scatterSVG(a)}
+      </div>`;
+  },
+
   /* bloco "Último / Melhor desempenho", separado dos controles */
   _htmlDesempenho(exId) {
     const st = State.statsExercicio(exId);
@@ -1167,6 +1194,8 @@ const UI = {
         <div class="prog-text">${totalFeito} de ${totalPlanejado} séries</div>
       </div>` : ""}
 
+      ${this._htmlSugestao(item.exId)}
+
       <div class="panel">
         <div class="panel-title">Registrar Série</div>
         ${this._inputsRegistro(prefill)}
@@ -1207,8 +1236,9 @@ const UI = {
                                   : `<p class="empty-msg" style="padding:.5rem">Nenhuma série ainda.</p>`}
            </div>
            ${this._inputsRegistro(this.prefillPara(item))}
-           <div class="quick-chips" id="quick-chips"></div>
-           ${this._htmlDesempenho(item.exId)}`
+            <div class="quick-chips" id="quick-chips"></div>
+            ${this._htmlSugestao(item.exId)}
+            ${this._htmlDesempenho(item.exId)}`
         : `<p class="bloco-resumo">${item.series.length} ${item.series.length === 1 ? "série registrada" : "séries registradas"}</p>
            <button class="btn" data-action="sess-active" data-arg="${i}">＋ SÉRIE</button>`;
 
@@ -1509,10 +1539,28 @@ const UI = {
     const sessoes = Stats.evolucaoExercicio(id);
     const ultimos = State.treinosDoExercicio(id).slice(0, 8);
 
+    let sugHtml = "";
+    try {
+      const a = Analise.analisar(id);
+      if (a.estado === "sem-dados") {
+        sugHtml = `<p class="m-sub" style="text-align:left">${escapar(a.mensagem)}</p>`;
+      } else {
+        sugHtml = `
+        <p style="margin:.2rem 0;"><b style="color:var(--gold-bright)">Sugestão: ${a.cargaSugerida} kg × ${a.repsAlvo.min}–${a.repsAlvo.max} reps</b></p>
+        <p class="m-sub" style="text-align:left">${escapar(a.mensagem)}</p>
+        <p class="m-sub" style="text-align:left">Faixa provável: ${a.faixaCarga.min}–${a.faixaCarga.max} kg · ${a.faixaReps.min}–${a.faixaReps.max} reps · ${escapar(Analise.textoConfianca(a))}</p>
+        <p class="m-sub" style="text-align:left;color:var(--text-dim);font-size:.78rem;">${escapar(a.detalhe)}</p>
+        ${Analise.scatterSVG(a)}`;
+      }
+    } catch (e) { sugHtml = ""; }
+
     const linhas = ultimos.map(t => `
-      <div class="hist-entry">
+      <div class="hist-entry hist-toggle">
         <span class="he-ex">${new Date(t.data).toLocaleDateString("pt-BR")}</span>
-        <span class="he-sets">${t.series.map(s => `${s.peso}×${s.reps}`).join("  ")}</span>
+        <span class="he-sets">${t.series.map((s, si) => {
+          const conta = State.serieContaParaAnalise(s);
+          return `<button class="chip${conta ? " on" : ""}" data-action="toggle-hist-serie" data-arg="${t.id}|${si}" title="${conta ? "Conta para análise — toque para ignorar" : "Ignorada — toque para incluir"}" style="${conta ? "" : "opacity:.55;"}">${s.peso}×${s.reps}${conta ? "" : " ⊘"}</button>`;
+        }).join(" ")}</span>
       </div>`).join("");
 
     this.modal(`
@@ -1526,6 +1574,10 @@ const UI = {
         <p class="m-sub" style="text-align:left">Melhor série: <b style="color:var(--gold-bright)">${st.melhorSerie ? st.melhorSerie.valor + " × " + st.melhorSerie.reps : "—"}</b></p>
         <p class="m-sub" style="text-align:left">Volume total: <b style="color:var(--gold-bright)">${fmtNum(st.volumeTotal)} kg</b> · Treinos: <b style="color:var(--gold-bright)">${st.numTreinos}</b></p>
       </div>
+      <div class="ornament">✦ ✦ ✦</div>
+      <div class="panel-title" style="margin-bottom:.3rem;">🔮 Faixa Estimada pelo Histórico</div>
+      ${sugHtml}
+      <p class="m-sub" style="color:var(--text-dim);font-size:.78rem;">Toque numa série abaixo para incluir/ignorar na análise.</p>
       ${linhas ? `<div class="ornament">✦ ✦ ✦</div><div style="max-height:180px;overflow-y:auto;text-align:left;">${linhas}</div>` : ""}
       ${sessoes.length >= 2 ? `
         <div class="ornament">✦ ✦ ✦</div>
