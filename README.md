@@ -50,10 +50,11 @@ O **cronômetro** no topo do treino de força marca o tempo decorrido; ao finali
 index.html   estrutura das telas
 style.css    identidade visual RPG medieval retrô
 data.js      biblioteca padrão + músculos segmentados + modalidades de cardio + conquistas + curva de XP
-state.js     estado e persistência (localStorage), CRUDs, migração v1→v2, export/import, cardio
+state.js     estado e persistência (localStorage), CRUDs, migração v1→v3, export/import, cardio, séries com tipo/inclusão
 game.js      regras de jogo (XP, níveis, recordes, streak, cardio XP/ouro, conquistas)
 warrior.js   guerreiro visual em SVG + mapa de músculos detalhado (derivados do histórico)
 stats.js     derivações estatísticas (força + cardio)
+analise.js   estimativa histórica carga×reps por exercício (Epley, mediana ponderada, IQR, SVG) — offline, sem dependências
 ui.js        telas, fluxos, cronômetro, validação e feedback visual
 ```
 
@@ -74,6 +75,7 @@ Tecnologias:
 - **Salvamento automático** do treino em andamento (`status: in_progress`)
 - **Cooldown de 10s** entre séries com proteção lógica e visual
 - **Pré-preenchimento inteligente**, atalhos de séries e diferenciação Força vs Cardio no histórico/evolução
+- **Oráculo de carga**: cada série tem tipo (válida, aquecimento, feeder) e pode ser incluída/ignorada na análise a qualquer momento; o app estima faixa de carga×reps do próprio histórico (1RM Epley como referência aproximada, mediana ponderada por recência, outliers suavizados por IQR), com sugestão, faixa provável, confiança (baixa/média/alta) e gráfico carga×reps com a estimativa em tracejado — sempre como estimativa, nunca "carga ideal"
 - **Conquistas de cardio** (8 novas) integradas ao sistema existente
 - **Prevenção de erros**: bloqueio de valores negativos/absurdos, mensagens por campo, confirmação de ações destrutivas, import JSON validado, saves corrompidos tratados, navegação segura durante treino
 - **Compatibilidade**: saves antigos migrados automaticamente; export/import preservado
