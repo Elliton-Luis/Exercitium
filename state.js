@@ -4,7 +4,12 @@
 
 const SAVE_KEY = "exercitium_save_v1";
 const SESSAO_KEY = "exercitium_sessao_v1";
-const SCHEMA_VERSAO = 2;
+const SCHEMA_VERSAO = 3;
+
+// Tipos de série para análise histórica.
+// "valida" conta para análise por padrão; demais tipos são ignorados
+// por padrão, mas o usuário pode alternar `incluir` depois.
+const SERIE_TIPOS = ["valida", "aquecimento", "feeder", "outro"];
 
 const State = {
   s: null, // estado atual
@@ -52,6 +57,58 @@ const State = {
     }).filter(m => MUSCULOS.includes(m));
   },
 
+  /* Normaliza uma série para o formato com tipo/inclusão.
+     Preserva dados antigos: sem tipo/incluir => válida e incluída. */
+  normalizarSerie(se, ordem = 0) {
+    const peso = Math.max(0, +(se && se.peso) || 0);
+    const reps = Math.max(1, Math.min(100, parseInt(se && se.reps, 10) || 0));
+    let tipo = (se && se.tipo) || "valida";
+    if (!SERIE_TIPOS.includes(tipo)) tipo = "valida";
+    let incluir;
+    if (se && typeof se.incluir === "boolean") incluir = se.incluir;
+    else incluir = (tipo === "valida");
+    return { peso, reps, tipo, incluir, ordem };
+  },
+
+  serieContaParaAnalise(se) {
+    if (!se) return false;
+    if (typeof se.incluir === "boolean") return se.incluir && se.peso > 0 && se.reps > 0;
+    const tipo = se.tipo || "valida";
+    return tipo === "valida" && se.peso > 0 && se.reps > 0;
+  },
+
+  /* Histórico normalizado de um exercício:
+     [{peso, reps, tipo, incluir, data, treinoId, ordem}] em ordem cronológica. */
+  historicoSeries(exId) {
+    return (this.s.treinos || [])
+      .filter(t => t.exercicioId === exId)
+      .sort((a, b) => a.data - b.data)
+      .flatMap(t => (t.series || []).map((se, i) => ({
+        ...this.normalizarSerie(se, i),
+        data: t.data,
+        treinoId: t.id
+      })));
+  },
+
+  historicoValido(exId) {
+    return this.historicoSeries(exId).filter(se => this.serieContaParaAnalise(se));
+  },
+
+  atualizarSerie(treinoId, serieIdx, patch) {
+    const t = (this.s.treinos || []).find(x => x.id === treinoId);
+    if (!t || !t.series || !t.series[serieIdx]) return false;
+    const atual = this.normalizarSerie(t.series[serieIdx], serieIdx);
+    if (patch && typeof patch.tipo === "string" && SERIE_TIPOS.includes(patch.tipo)) {
+      atual.tipo = patch.tipo;
+      // trocar o tipo redefine a inclusão padrão, salvo override explícito
+      if (typeof patch.incluir !== "boolean") atual.incluir = (patch.tipo === "valida");
+    }
+    if (patch && typeof patch.incluir === "boolean") atual.incluir = patch.incluir;
+    t.series[serieIdx] = { peso: atual.peso, reps: atual.reps, tipo: atual.tipo, incluir: atual.incluir };
+    this.save();
+    return true;
+  },
+
   migrar(parsed) {
     // já na versão atual
     if (parsed.versao === SCHEMA_VERSAO) return parsed;
@@ -69,6 +126,23 @@ const State = {
       }
       if (!Array.isArray(parsed.cardios)) parsed.cardios = [];
       parsed.versao = 2;
+    }
+    if (parsed.versao < 3) {
+      // v2 -> v3: séries ganham tipo/incluir sem alterar valores existentes
+      if (Array.isArray(parsed.treinos)) {
+        for (const t of parsed.treinos) {
+          if (!Array.isArray(t.series)) { t.series = []; continue; }
+          t.series = t.series.map((se, i) => {
+            const peso = Math.max(0, +(se && se.peso) || 0);
+            const reps = Math.max(1, Math.min(100, parseInt(se && se.reps, 10) || 0));
+            let tipo = (se && se.tipo) || "valida";
+            if (!SERIE_TIPOS.includes(tipo)) tipo = "valida";
+            const incluir = (se && typeof se.incluir === "boolean") ? se.incluir : (tipo === "valida");
+            return { peso, reps, tipo, incluir };
+          });
+        }
+      }
+      parsed.versao = 3;
     }
     return parsed;
   },
@@ -103,6 +177,14 @@ const State = {
       }, migrado.personagem.equipamento || {});
       // sanitizar cardios: remover entradas inválidas
       this.s.cardios = this.s.cardios.filter(c => c && typeof c.duracaoMin === "number" && c.duracaoMin > 0);
+      // normalização defensiva das séries (saves v3 incompletos ou editados à mão)
+      for (const t of this.s.treinos) {
+        if (!Array.isArray(t.series)) { t.series = []; continue; }
+        t.series = t.series.map((se, i) => {
+          const n = this.normalizarSerie(se, i);
+          return { peso: n.peso, reps: n.reps, tipo: n.tipo, incluir: n.incluir };
+        });
+      }
       if (migrado.versao !== SCHEMA_VERSAO) {
         this.s.versao = SCHEMA_VERSAO;
         this.save();
@@ -275,8 +357,9 @@ const State = {
 
   addTreino(exId, series) {
     if (!this.exercicioPorId(exId)) return null;
-    const cleanSeries = series.map(s => ({ peso: Math.max(0, +s.peso), reps: Math.max(1, Math.min(100, +s.reps|0)) }))
-      .filter(s => s.peso > 0 && s.reps > 0 && s.peso <= 1000);
+    const cleanSeries = series.map((s, i) => this.normalizarSerie(s, i))
+      .filter(s => s.peso > 0 && s.reps > 0 && s.peso <= 1000)
+      .map(s => ({ peso: s.peso, reps: s.reps, tipo: s.tipo, incluir: s.incluir }));
     if (!cleanSeries.length) return null;
     const t = {
       id: "t" + Date.now().toString(36),

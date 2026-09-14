@@ -303,6 +303,8 @@ const UI = {
       const [itemIdx, setIdx] = arg.split(":").map(Number);
       this.removerSerieSessao(itemIdx, setIdx);
     },
+    "toggle-set-tipo":  function (arg) { this.alternarTipoSerieSessao(arg); },
+    "toggle-hist-serie": function (arg) { this.alternarSerieHistorico(arg); },
     "sess-active":      function (idx) { this.ativarItemSessao(+idx); },
     "sess-goto":        function (idx) {
       const s = this.sessao;
@@ -339,7 +341,10 @@ const UI = {
         items: salva.items.map(i => ({
           exId: i.exId,
           planejadas: +i.planejadas || 0,
-          series: (i.series || []).map(x => ({ peso: +x.peso, reps: +x.reps }))
+          series: (i.series || []).map(x => {
+            const n = State.normalizarSerie(x, 0);
+            return { peso: n.peso, reps: n.reps, tipo: n.tipo, incluir: n.incluir };
+          })
         })),
         idx: Math.min(+salva.idx || 0, salva.items.length - 1),
         iniciadaEm: salva.iniciadaEm || Date.now()
@@ -1067,6 +1072,14 @@ const UI = {
           <input type="number" id="inp-reps" inputmode="numeric" min="1" step="1" value="${prefill.reps}" placeholder="10">
         </div>
       </div>
+      <div class="form-field" style="margin:.5rem 0;">
+        <label>Tipo de série</label>
+        <select id="inp-tipo">
+          <option value="valida">⚔ Válida (conta p/ análise)</option>
+          <option value="aquecimento">🔥 Aquecimento (ignorar)</option>
+          <option value="feeder">🕯 Feeder / preparação (ignorar)</option>
+        </select>
+      </div>
       ${extraHtml}
       <div id="cooldown-box" class="cooldown-box hidden">
         <div class="cd-title">✓ SÉRIE REGISTRADA</div>
@@ -1076,11 +1089,22 @@ const UI = {
       <button class="btn btn-primary" id="btn-add-set" data-action="add-set">＋ REGISTRAR SÉRIE</button>`;
   },
 
+  _rotuloTipoSerie(se) {
+    const n = State.normalizarSerie(se, 0);
+    if (n.tipo === "aquecimento") return "🔥 aquec.";
+    if (n.tipo === "feeder") return "🕯 feeder";
+    if (n.incluir === false) return "ign.";
+    return "⚔ válida";
+  },
+
   _linhaSet(itemIdx, se, i) {
+    const n = State.normalizarSerie(se, i);
+    const conta = State.serieContaParaAnalise({ ...se, tipo: n.tipo, incluir: n.incluir });
     return `
-      <div class="set-row">
+      <div class="set-row${conta ? "" : " set-ignored"}">
         <div class="set-num">${i + 1}</div>
-        <div class="set-data">${se.peso} kg × ${se.reps}<small> · vol ${fmtNum(se.peso * se.reps)} kg</small></div>
+        <div class="set-data">${se.peso} kg × ${se.reps}<small> · vol ${fmtNum(se.peso * se.reps)} kg · ${this._rotuloTipoSerie(se)}</small></div>
+        <button class="set-del" data-action="toggle-set-tipo" data-arg="${itemIdx}:${i}" title="Alternar válida/ignorada">${conta ? "◐" : "◑"}</button>
         <button class="set-del" data-action="remove-set" data-arg="${itemIdx}:${i}" title="Remover série">🗑</button>
       </div>`;
   },
@@ -1241,7 +1265,10 @@ const UI = {
       return;
     }
 
-    item.series.push({ peso, reps });
+    const tipoEl = document.getElementById("inp-tipo");
+    const tipoSel = tipoEl ? tipoEl.value : "valida";
+    const tipo = SERIE_TIPOS.includes(tipoSel) ? tipoSel : "valida";
+    item.series.push({ peso, reps, tipo, incluir: tipo === "valida" });
     this.floatXP("+10 XP");
     this.ganharXPSilencioso(10, 2);
 
@@ -1280,6 +1307,44 @@ const UI = {
     item.series.splice(setIdx, 1);
     this._persistirSessao();
     this.render_workout(document.getElementById("screen-workout"));
+  },
+
+  alternarTipoSerieSessao(arg) {
+    const s = this.sessao;
+    if (!s) return;
+    const [itemIdx, setIdx] = String(arg).split(":").map(Number);
+    const item = s.items[itemIdx];
+    const se = item && item.series[setIdx];
+    if (!se) return;
+    const n = State.normalizarSerie(se, setIdx);
+    const conta = State.serieContaParaAnalise(se);
+    if (conta) {
+      se.tipo = n.tipo === "valida" ? "aquecimento" : n.tipo;
+      se.incluir = false;
+      this.toast("Série marcada para ignorar na análise.");
+    } else {
+      se.tipo = "valida";
+      se.incluir = true;
+      this.toast("Série marcada como válida para análise.");
+    }
+    this._persistirSessao();
+    this.render_workout(document.getElementById("screen-workout"));
+  },
+
+  alternarSerieHistorico(arg) {
+    const [treinoId, idxStr] = String(arg).split("|");
+    const idx = parseInt(idxStr, 10);
+    const t = (State.s.treinos || []).find(x => x.id === treinoId);
+    if (!t || !t.series[idx]) return;
+    const atual = State.normalizarSerie(t.series[idx], idx);
+    const conta = State.serieContaParaAnalise(t.series[idx]);
+    State.atualizarSerie(treinoId, idx, conta
+      ? { tipo: atual.tipo === "valida" ? "aquecimento" : atual.tipo, incluir: false }
+      : { tipo: "valida", incluir: true });
+    this.toast(conta ? "Série ignorada na análise." : "Série conta para análise.");
+    // reabre o detalhe atualizado se estiver num modal de exercício
+    const treino = (State.s.treinos || []).find(x => x.id === treinoId);
+    if (treino) this.detalheExercicio(treino.exercicioId);
   },
 
   /* ---------- Cooldown de registro (10s) ---------- */
